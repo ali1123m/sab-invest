@@ -160,7 +160,7 @@ app.use(express.static('public'));
 
 app.get('/', (req, res) => {
   res.sendFile(__dirname + '/public/Dashboard.html');
-});ss
+});
 // ══════════════════════════════════════════════════
 // GET /prices — all symbols at once
 // ══════════════════════════════════════════════════
