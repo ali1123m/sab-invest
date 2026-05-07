@@ -159,7 +159,7 @@ setInterval(refreshAll, 15000);
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/Dashboard.html');
+  res.sendFile(__dirname + '/public/dashboard.html');
 });
 // ══════════════════════════════════════════════════
 // GET /prices — all symbols at once
