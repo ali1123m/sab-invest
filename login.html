@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل الدخول | الأول للاستثمار</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root { --red: #ef233c; --red-dim: rgba(239,35,60,0.15); --red-glow: rgba(239,35,60,0.55); --border: rgba(255,255,255,0.08); --muted: #888; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Cairo', sans-serif; background: #000; color: #fff; min-height: 100vh; display: flex; flex-direction: column; }
+        .bg-layer { position: fixed; inset: 0; z-index: 0; }
+        .bg-layer::before { content: ''; position: absolute; inset: 0; background-image: url('people1.jpg'); background-size: cover; background-position: center; opacity: 0.1; }
+        .bg-layer::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 100%); }
+        nav { position: relative; z-index: 10; padding: 0 5%; height: 70px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.6); backdrop-filter: blur(20px); }
+        .logo-container { display: flex; align-items: center; gap: 12px; text-decoration: none; color: inherit; }
+        .main-logo { height: 38px; }
+        .company-name { font-weight: 700; font-size: 1rem; }
+        .company-sub { font-size: 0.6rem; color: var(--red); letter-spacing: 0.15em; display: block; }
+        .back-link { color: var(--muted); text-decoration: none; font-size: 0.85rem; transition: color 0.2s; }
+        .back-link:hover { color: white; }
+        main { flex: 1; position: relative; z-index: 1; display: flex; align-items: center; justify-content: center; padding: 60px 20px; }
+        .card { width: 100%; max-width: 420px; background: rgba(8,8,8,0.92); border: 1px solid var(--border); border-radius: 24px; padding: 44px 36px; backdrop-filter: blur(20px); box-shadow: 0 40px 80px rgba(0,0,0,0.6); position: relative; overflow: hidden; }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(to left, transparent, var(--red), transparent); }
+        .card-icon { width: 52px; height: 52px; background: var(--red-dim); border: 1px solid rgba(239,35,60,0.3); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 20px; }
+        .card-title { font-size: 1.6rem; font-weight: 900; margin-bottom: 6px; }
+        .card-sub { color: var(--muted); font-size: 0.85rem; margin-bottom: 8px; }
+        .hint-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; font-size: 0.78rem; color: var(--muted); margin-bottom: 24px; line-height: 1.5; }
+        .hint-box strong { color: #aaa; }
+        .field { margin-bottom: 16px; }
+        .field label { font-size: 0.78rem; font-weight: 700; color: #bbb; display: block; margin-bottom: 6px; }
+        .field-wrap { position: relative; }
+        .field-icon { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); opacity: 0.35; pointer-events: none; }
+        .field input { width: 100%; height: 50px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: white; padding: 0 42px 0 14px; border-radius: 11px; font-family: 'Cairo', sans-serif; font-size: 0.92rem; direction: rtl; transition: border-color 0.2s, box-shadow 0.2s; }
+        .field input::placeholder { color: #333; }
+        .field input:focus { outline: none; border-color: var(--red); box-shadow: 0 0 0 3px rgba(239,35,60,0.1); background: rgba(239,35,60,0.03); }
+        .toggle-pass { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-family: 'Cairo', sans-serif; font-size: 0.82rem; transition: color 0.2s; }
+        .toggle-pass:hover { color: white; }
+        .submit-btn { width: 100%; height: 50px; background: var(--red); border: none; color: white; font-family: 'Cairo', sans-serif; font-size: 0.95rem; font-weight: 700; border-radius: 11px; cursor: pointer; transition: all 0.3s; box-shadow: 0 4px 20px var(--red-glow); margin-top: 4px; }
+        .submit-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px var(--red-glow); }
+        .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .err-msg { background: rgba(239,35,60,0.1); border: 1px solid rgba(239,35,60,0.3); color: #f87171; border-radius: 10px; padding: 11px 14px; font-size: 0.82rem; margin-bottom: 14px; display: none; }
+        .divider { display: flex; align-items: center; gap: 12px; margin: 20px 0; color: #333; font-size: 0.8rem; }
+        .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+        .register-link { text-align: center; font-size: 0.85rem; color: var(--muted); }
+        .register-link a { color: var(--red); text-decoration: none; font-weight: 700; }
+        footer { position: relative; z-index: 1; text-align: center; padding: 16px; color: #333; font-size: 0.72rem; border-top: 1px solid var(--border); }
+    </style>
+</head>
+<body>
+<div class="bg-layer"></div>
+<nav>
+    <a href="index.html" class="logo-container">
+        <img src="logo.png" class="main-logo" alt="الأول للاستثمار">
+        <div><span class="company-name">الأول للاستثمار</span><span class="company-sub">SAB INVEST</span></div>
+    </a>
+    <a href="index.html" class="back-link">→ العودة للرئيسية</a>
+</nav>
+<main>
+    <div class="card">
+        <div class="card-icon">🔐</div>
+        <div class="card-title">تسجيل الدخول</div>
+        <div class="card-sub">أدخل رقم العميل وكلمة المرور</div>
+        <div class="hint-box">
+            <strong>رقم الصندوق </strong> هو الرقم المكون من 6 أرقام الذي حصلت عليه عند التسجيل
+        </div>
+
+        <div class="err-msg" id="errMsg"></div>
+
+        <form id="loginForm" novalidate>
+            <div class="field">
+                <label>رقم الصندوق</label>
+                <div class="field-wrap">
+                    <span class="field-icon">🪪</span>
+                    <input type="text" id="customerNumber" placeholder="XXXXXX" required maxlength="6"
+                        style="direction:ltr;text-align:center;font-size:1.3rem;font-weight:700;letter-spacing:0.15em;">
+                </div>
+            </div>
+            <div class="field">
+                <label>كلمة المرور</label>
+                <div class="field-wrap">
+                    <span class="field-icon">🔒</span>
+                    <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
+                    <button type="button" class="toggle-pass" id="togglePass">إظهار</button>
+                </div>
+            </div>
+            <button type="submit" class="submit-btn" id="submitBtn">دخول</button>
+        </form>
+
+        <div class="divider">أو</div>
+        <div class="register-link">ليس لديك حساب؟ <a href="register.html">إنشاء حساب جديد</a></div>
+    </div>
+</main>
+<footer>الأول للاستثمار © 2025 — ترخيص هيئة السوق المالية 07079-37</footer>
+
+<script>
+    document.getElementById('togglePass').addEventListener('click', function() {
+        const p = document.getElementById('password');
+        p.type = p.type === 'password' ? 'text' : 'password';
+        this.textContent = p.type === 'text' ? 'إخفاء' : 'إظهار';
+    });
+    document.getElementById('customerNumber').addEventListener('input', function() {
+        this.value = this.value.replace(/\D/g, '');
+    });
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+    getFirestore, collection, query, where, getDocs,
+    doc, updateDoc, addDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCteGTg7qhLBaoRENJEe0RMiC2yBCkyCVw",
+    authDomain: "sab-invest-crm.firebaseapp.com",
+    projectId: "sab-invest-crm",
+    storageBucket: "sab-invest-crm.firebasestorage.app",
+    messagingSenderId: "432529165928",
+    appId: "1:432529165928:web:0a4772c3330fb2fcd675dd"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+function hashPassword(pass) {
+    return btoa(unescape(encodeURIComponent(pass)));
+}
+
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const customerNumber = document.getElementById('customerNumber').value.trim();
+    const password       = document.getElementById('password').value;
+    const errEl          = document.getElementById('errMsg');
+    const btn            = document.getElementById('submitBtn');
+
+    errEl.style.display = 'none';
+
+    if (!customerNumber || !password) {
+        errEl.textContent = 'يرجى إدخال رقم العميل وكلمة المرور';
+        errEl.style.display = 'block'; return;
+    }
+
+    btn.textContent = 'جاري الدخول...';
+    btn.disabled = true;
+
+    try {
+        const q = query(collection(db, "users"), where("customerNumber", "==", customerNumber));
+        const snap = await getDocs(q);
+
+        if (snap.empty) {
+            errEl.textContent = 'رقم العميل غير موجود. تحقق من الرقم وحاول مجدداً';
+            errEl.style.display = 'block';
+            btn.textContent = 'دخول'; btn.disabled = false; return;
+        }
+
+        const userDoc = snap.docs[0];
+        const user    = userDoc.data();
+
+        if (user.password !== hashPassword(password)) {
+            errEl.textContent = 'كلمة المرور غير صحيحة';
+            errEl.style.display = 'block';
+            btn.textContent = 'دخول'; btn.disabled = false; return;
+        }
+
+        if (user.status === 'suspended') {
+            errEl.textContent = 'حسابك موقوف. تواصل مع الدعم للمزيد من المعلومات';
+            errEl.style.display = 'block';
+            btn.textContent = 'دخول'; btn.disabled = false; return;
+        }
+
+        const now = new Date();
+
+        // Update login stats
+        await updateDoc(doc(db, "users", userDoc.id), {
+            lastLogin: now,
+            loginCount: (user.loginCount || 0) + 1
+        });
+
+        // Log to loginHistory
+        await addDoc(collection(db, "loginHistory"), {
+            userId: userDoc.id,
+            customerNumber,
+            name: ((user.first || '') + ' ' + (user.last || '')).trim(),
+            email: user.email || '',
+            loginAt: serverTimestamp()
+        });
+
+        // Save full session to sessionStorage
+        sessionStorage.setItem('userId', userDoc.id);
+        sessionStorage.setItem('customerNumber', customerNumber);
+        sessionStorage.setItem('userName', ((user.first || '') + ' ' + (user.last || '')).trim());
+        sessionStorage.setItem('userEmail', user.email || '');
+        sessionStorage.setItem('userBalance', user.balance || 0);
+        sessionStorage.setItem('loggedIn', 'true');
+
+        window.location.href = 'dashboard.html';
+
+    } catch (err) {
+        errEl.textContent = 'حدث خطأ: ' + err.message;
+        errEl.style.display = 'block';
+        btn.textContent = 'دخول'; btn.disabled = false;
+    }
+});
+</script>
+</body>
+</html>
