@@ -1,0 +1,1005 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الأول للاستثمار | SAB Invest</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #ef233c;
+            --red-dim: rgba(239,35,60,0.15);
+            --red-glow: rgba(239,35,60,0.6);
+            --black: #000;
+            --dark: #080808;
+            --dark2: #0f0f0f;
+            --border: rgba(255,255,255,0.08);
+            --text-muted: #888;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: var(--black);
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        /* ─── NAVBAR ─── */
+        .navbar {
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 9999;
+            padding: 0 5%;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
+            transition: background 0.4s;
+        }
+
+        .navbar.scrolled {
+            background: rgba(0,0,0,0.97);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* לוגו תמונה מקורי בנאבבר */
+        .main-logo {
+            height: 42px;
+            width: auto;
+        }
+
+        .logo-mark {
+            width: 38px;
+            height: 38px;
+            background: var(--red);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            font-size: 1.1rem;
+            letter-spacing: -1px;
+        }
+
+        .company-name {
+            font-weight: 700;
+            font-size: 1.05rem;
+            letter-spacing: 0.02em;
+        }
+
+        .company-sub {
+            font-size: 0.65rem;
+            color: var(--red);
+            letter-spacing: 0.15em;
+            display: block;
+            font-weight: 400;
+        }
+
+        .menu-icon {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            padding: 8px;
+            z-index: 99999;
+        }
+
+        .menu-icon span {
+            display: block;
+            height: 2px;
+            background: white;
+            border-radius: 2px;
+            transition: all 0.3s;
+        }
+        .menu-icon span:nth-child(1) { width: 28px; }
+        .menu-icon span:nth-child(2) { width: 20px; }
+        .menu-icon span:nth-child(3) { width: 24px; }
+
+        .menu-icon:hover span { background: var(--red); width: 28px !important; }
+
+        #navLinks {
+            display: none;
+            position: fixed;
+            top: 76px;
+            left: 24px;
+            background: rgba(10,10,10,0.97);
+            border: 1px solid var(--border);
+            padding: 8px;
+            border-radius: 16px;
+            flex-direction: column;
+            gap: 2px;
+            z-index: 99999;
+            min-width: 230px;
+            direction: rtl;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 0 1px var(--border);
+        }
+
+        #navLinks.open { display: flex; animation: slideDown 0.2s ease; }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        #navLinks a {
+            color: #ccc;
+            text-decoration: none;
+            padding: 11px 16px;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #navLinks a::before {
+            content: '';
+            width: 4px;
+            height: 4px;
+            background: var(--red);
+            border-radius: 50%;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        #navLinks a:hover {
+            background: var(--red-dim);
+            color: white;
+        }
+        #navLinks a:hover::before { opacity: 1; }
+
+        /* ─── HERO ─── */
+        .hero-slider {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .slider-img {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center top;
+            transition: opacity 1.8s ease-in-out;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            inset: 0;
+            background: 
+                linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.75) 100%),
+                linear-gradient(to right, rgba(239,35,60,0.12) 0%, transparent 60%);
+            z-index: 1;
+        }
+
+        /* Noise grain texture */
+        .hero-overlay::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+            opacity: 0.4;
+            pointer-events: none;
+        }
+
+        .hero-content {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            padding-bottom: 80px;
+            gap: 24px;
+        }
+
+        .hero-badge {
+            background: var(--red-dim);
+            border: 1px solid var(--red);
+            color: var(--red);
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.2em;
+            padding: 6px 18px;
+            border-radius: 100px;
+            text-transform: uppercase;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+            line-height: 1.1;
+            text-shadow: 0 4px 30px rgba(0,0,0,0.8);
+        }
+
+        .hero-title span { color: var(--red); }
+
+        .hero-sub {
+            color: rgba(255,255,255,0.65);
+            font-size: 1rem;
+            font-weight: 300;
+        }
+
+        .cta-btn {
+            background: var(--red);
+            color: white;
+            border: none;
+            padding: 15px 48px;
+            border-radius: 100px;
+            font-size: 1rem;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 0 40px var(--red-glow), 0 8px 32px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+            letter-spacing: 0.04em;
+        }
+
+        .cta-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, transparent 60%);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px) scale(1.03);
+            box-shadow: 0 0 60px var(--red-glow), 0 16px 40px rgba(0,0,0,0.6);
+        }
+
+        /* Scroll indicator */
+        .scroll-hint {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 3;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scroll-line {
+            width: 1px;
+            height: 50px;
+            background: linear-gradient(to bottom, var(--red), transparent);
+            animation: scrollPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes scrollPulse {
+            0%, 100% { opacity: 0.3; transform: scaleY(0.8); }
+            50% { opacity: 1; transform: scaleY(1); }
+        }
+
+        /* ─── SECTION LABEL ─── */
+        .section-label {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .section-label-line {
+            width: 40px;
+            height: 1px;
+            background: var(--red);
+        }
+
+        .section-label span {
+            font-size: 0.7rem;
+            letter-spacing: 0.25em;
+            color: var(--red);
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* ─── SERVICES ─── */
+        .services-section {
+            padding: 120px 5% 80px;
+            /* תמונת רקע עם אוברליי כהה */
+            position: relative;
+        }
+
+        /* שכבת רקע עם תמונה */
+        .services-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url('people1.jpg');
+            background-size: cover;
+            background-position: center top;
+            background-attachment: fixed; /* parallax effect */
+            opacity: 0.07; /* עדין מאוד — רק hint של התמונה */
+            z-index: 0;
+        }
+
+        .services-section > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .section-header {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-header h2 {
+            font-size: clamp(1.8rem, 3vw, 2.6rem);
+            font-weight: 800;
+            margin-bottom: 12px;
+        }
+
+        .section-header p {
+            color: var(--text-muted);
+            font-weight: 300;
+            font-size: 1rem;
+        }
+
+        .services-grid {
+            display: grid;
+            /* תמיד 3 עמודות שוות — 2 שורות × 3 = 6 ריבועים מסודרים */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+        }
+
+        .service-item {
+            background: var(--dark);
+            padding: 36px 28px;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 14px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+        }
+
+        .service-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            left: 0;
+            height: 2px;
+            background: var(--red);
+            transform: scaleX(0);
+            transform-origin: right;
+            transition: transform 0.4s ease;
+        }
+
+        .service-item::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(circle at 30% 50%, var(--red-dim) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s;
+        }
+
+        .service-item:hover {
+            background: #0d0d0d;
+        }
+
+        .service-item:hover::before {
+            transform: scaleX(1);
+        }
+
+        .service-item:hover::after {
+            opacity: 1;
+        }
+
+        .service-icon-wrap {
+            width: 50px;
+            height: 50px;
+            background: var(--red-dim);
+            border: 1px solid rgba(239,35,60,0.3);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s;
+        }
+
+        .service-item:hover .service-icon-wrap {
+            background: var(--red);
+            border-color: var(--red);
+            transform: scale(1.08);
+        }
+
+        .service-title {
+            font-size: 1rem;
+            font-weight: 700;
+            position: relative;
+            z-index: 1;
+        }
+
+        .service-desc {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.6;
+            font-weight: 300;
+            position: relative;
+            z-index: 1;
+        }
+
+        .service-arrow {
+            color: var(--red);
+            font-size: 0.9rem;
+            opacity: 0;
+            transform: translateX(5px);
+            transition: all 0.3s;
+            position: relative;
+            z-index: 1;
+            margin-top: auto;
+        }
+
+        .service-item:hover .service-arrow {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        /* ─── STATS ─── */
+        .stats-section {
+            padding: 80px 5%;
+            position: relative;
+        }
+
+        /* תמונת רקע לסטאטס — people2 עם אפקט parallax */
+        .stats-section::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: url('people2.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
+            opacity: 0.06;
+            z-index: 0;
+        }
+
+        /* gradient אדום מעל התמונה */
+        .stats-section::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(ellipse at 20% 50%, rgba(239,35,60,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 50%, rgba(239,35,60,0.04) 0%, transparent 60%);
+            z-index: 0;
+        }
+
+        .stats-section > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1px;
+            background: var(--border);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stat-item {
+            background: var(--dark);
+            padding: 50px 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .stat-item::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 20%;
+            right: 20%;
+            height: 1px;
+            background: var(--red);
+            transform: scaleX(0);
+            transition: transform 0.5s ease;
+        }
+
+        .stat-item:hover::after {
+            transform: scaleX(1);
+        }
+
+        .stat-number {
+            font-size: clamp(2.5rem, 4vw, 3.5rem);
+            font-weight: 900;
+            color: var(--red);
+            line-height: 1;
+            margin-bottom: 10px;
+            font-feature-settings: "tnum";
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        /* ─── CONTACT ─── */
+        .contact-section {
+            padding: 100px 5%;
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .contact-section .section-header {
+            text-align: center;
+            margin-bottom: 48px;
+        }
+
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background: var(--dark);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 40px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .contact-form input,
+        .contact-form select {
+            height: 48px;
+            background: #0a0a0a;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 0 16px;
+            border-radius: 10px;
+            font-family: 'Cairo', sans-serif;
+            font-size: 0.9rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            width: 100%;
+            direction: rtl;
+        }
+
+        .contact-form input::placeholder { color: #444; }
+
+        .contact-form input:focus,
+        .contact-form select:focus {
+            outline: none;
+            border-color: var(--red);
+            box-shadow: 0 0 0 3px rgba(239,35,60,0.1);
+        }
+
+        .contact-form select option { background: #111; }
+
+        .submit-btn {
+            background: var(--red);
+            border: none;
+            height: 50px;
+            color: white;
+            font-weight: 700;
+            font-family: 'Cairo', sans-serif;
+            font-size: 1rem;
+            cursor: pointer;
+            border-radius: 10px;
+            margin-top: 8px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s;
+            letter-spacing: 0.05em;
+        }
+
+        .submit-btn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 60%);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px var(--red-glow);
+        }
+
+        /* ─── FOOTER ─── */
+        .footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 5%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-copy {
+            color: var(--text-muted);
+            font-size: 0.78rem;
+        }
+
+        .footer-license {
+            background: var(--red-dim);
+            border: 1px solid rgba(239,35,60,0.2);
+            color: var(--red);
+            font-size: 0.72rem;
+            padding: 6px 14px;
+            border-radius: 100px;
+            letter-spacing: 0.05em;
+        }
+        .footer-link {
+    color: var(--red);
+    text-decoration: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.footer-link:hover {
+    text-decoration: underline;
+    opacity: 0.8;
+}
+
+        /* ─── ANIMATIONS ─── */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.7s ease, transform 0.7s ease;
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .contact-form {
+                padding: 24px;
+            }
+
+            .hero-title { font-size: 1.8rem; }
+
+            /* טאבלט: 2 עמודות × 3 שורות */
+            .services-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid { grid-template-columns: 1fr 1fr; }
+            /* מובייל: 2 עמודות × 3 שורות — נשאר קריא */
+            .services-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar" id="navbar">
+    <div class="logo-container">
+        <!-- לוגו מקורי של החברה -->
+        <img src="logo.png" class="main-logo" alt="الأول للاستثمار">
+        <div>
+            <span class="company-name">الأول للاستثمار</span>
+            <span class="company-sub">SAB INVEST</span>
+        </div>
+    </div>
+    <div class="menu-icon" id="menuBtn">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+</header>
+
+<nav id="navLinks">
+    <a href="index.html">الصفحة الرئيسية</a>
+    <a href="real-estate.html">الاستثمارات العقارية</a>
+    <a href="brokerage.html">الوساطة المالية</a>
+    <a href="expertise.html">خبراتنا</a>
+    <a href="about.html">تعرف علينا</a>
+    <a href="license.html">إدارةالأصول</a>
+    <a href="login.html">تسجيل دخول</a>
+    <a href="register.html">إنشاء حساب</a>
+    <a href="index.html#contact" onclick="document.getElementById('navLinks').classList.remove('open')">اتصل بنا</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero-slider">
+    <img src="people1.jpg" class="slider-img" id="img1">
+    <img src="people2.jpg" class="slider-img" id="img2" style="opacity:0;">
+    <div class="hero-overlay"></div>
+
+    <div class="hero-content">
+        <div class="hero-badge">منصة استثمارية رائدة</div>
+        <h1 class="hero-title">
+            استثمر بثقة<br>مع <span>الأول</span>
+        </h1>
+        <p class="hero-sub">حلول مالية متكاملة — عقارات، وساطة، وإدارة أصول</p>
+        <!-- כפתור גולל לטופס בתחתית הדף -->
+        <button class="cta-btn" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})">انضم إلينا</button>
+    </div>
+
+    <div class="scroll-hint">
+        <div class="scroll-line"></div>
+    </div>
+</section>
+
+<!-- SERVICES -->
+<section class="services-section">
+    <div class="section-header fade-up">
+        <div class="section-label">
+            <div class="section-label-line"></div>
+            <span>خدماتنا</span>
+            <div class="section-label-line"></div>
+        </div>
+        <h2>حلول استثمارية متكاملة</h2>
+        <p>نقدم لك أفضل الفرص في الأسواق المالية والعقارية</p>
+    </div>
+
+    <div class="services-grid fade-up">
+        <!-- ריבוע 4: אודות -->
+        <div class="service-item" onclick="location.href='about.html'" style="cursor:pointer">
+            <div class="service-icon-wrap">❓</div>
+            <div class="service-title">تعرف علينا</div>
+            <div class="service-desc">نظرة عامة، الهيئة الشرعية ومجلس الإدارة</div>
+            <div class="service-arrow">← اكتشف</div>
+        </div>
+        <!-- ריבוע 1: נדל"ן -->
+        <div class="service-item" onclick="location.href='real-estate.html'" style="cursor:pointer">
+            <div class="service-icon-wrap">🏢</div>
+            <div class="service-title">الاستثمارات العقارية</div>
+            <div class="service-desc">أصول عقارية منتقاة لمحفظتك الاستثمارية</div>
+            <div class="service-arrow">← اكتشف</div>
+        </div>
+        <!-- ריבוע 2: וסיטות -->
+        <div class="service-item" onclick="location.href='brokerage.html'" style="cursor:pointer">
+            <div class="service-icon-wrap">🤝</div>
+            <div class="service-title">الوساطة المالية</div>
+            <div class="service-desc">الأسواق المالية بين أناملك</div>
+            <div class="service-arrow">← اكتشف</div>
+        </div>
+        <!-- ריבוע 3: ניהול תיקים -->
+        <div class="service-item" onclick="location.href='expertise.html'" style="cursor:pointer">
+            <div class="service-icon-wrap">💼</div>
+            <div class="service-title">خبراتنا</div>
+            <div class="service-desc">إدارة احترافية لتحقيق أهدافك المالية</div>
+            <div class="service-arrow">← اكتشف</div>
+        </div>
+        <!-- ריבוע 5: רישיון -->
+        <div class="service-item" onclick="location.href='license.html'" style="cursor:pointer">
+            <div class="service-icon-wrap">📜</div>
+            <div class="service-title">ادارة الاصول</div>
+            <div class="service-desc">استراتيجيات استثمارية مدروسة لتعظيم عوائد محفظتك</div>
+            <div class="service-arrow">← اكتشف</div>
+        </div>
+        <!-- ריבוע 6: צור קשר — גולל לטופס -->
+        <div class="service-item" onclick="document.getElementById('contact').scrollIntoView({behavior:'smooth'})" style="cursor:pointer">
+            <div class="service-icon-wrap">📞</div>
+            <div class="service-title">اتصل بنا</div>
+            <div class="service-desc">تواصل معنا وسنرد عليك في أقرب وقت</div>
+            <div class="service-arrow">← تواصل</div>
+        </div>
+    </div>
+</section>
+
+<!-- STATS -->
+<section class="stats-section">
+    <div class="stats-grid fade-up">
+        <div class="stat-item">
+            <div class="stat-number">11%</div>
+            <div class="stat-label">الحصة السوقية</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">2.9B</div>
+            <div class="stat-label">القيمة المتداولة (ريال)</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">38.7B</div>
+            <div class="stat-label">الأصول تحت الإدارة</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-number">#4</div>
+            <div class="stat-label">الترتيب بين شركات الوساطة</div>
+        </div>
+    </div>
+</section>
+
+<!-- CONTACT -->
+<section class="contact-section" id="contact">
+    <div class="section-header fade-up">
+        <div class="section-label">
+            <div class="section-label-line"></div>
+            <span>تواصل معنا</span>
+            <div class="section-label-line"></div>
+        </div>
+        <h2>نسعد بخدمتك</h2>
+        <p>تواصل معنا وسنرد عليك في أقرب وقت</p>
+    </div>
+
+    <form class="contact-form fade-up">
+        <div class="form-row">
+            <input type="text" name="first_name" placeholder="الإسم" required>
+            <input type="text" name="last_name" placeholder="إسم العائلة" required>
+        </div>
+        <input type="tel" name="phone" placeholder="رقم الجوال" required>
+        <input type="email" name="email" placeholder="البريد الالكتروني" required>
+        <select name="country" required>
+            <option value="" disabled selected>إختر دولتك</option>
+            <option>المملكة العربية السعودية</option>
+            <option>الإمارات العربية المتحدة</option>
+            <option>قطر</option>
+            <option>الكويت</option>
+            <option>البحرين</option>
+            <option>الأردن</option>
+            <option>بلجيكا</option>
+            <option>ايطاليا</option>
+            <option>فرنسا</option>
+        
+        </select>
+        <button type="submit" class="submit-btn">إرسال الطلب</button>
+    </form>
+</section>
+
+<!-- FOOTER -->
+<footer class="footer">
+    <div class="footer-brand">
+        <div class="logo-mark" style="width:32px;height:32px;font-size:0.9rem;">أ</div>
+        <span style="font-size:0.85rem;color:#666;">الأول للاستثمار © 2025</span>
+    </div>
+
+    <span class="footer-copy">جميع الحقوق محفوظة</span>
+    <!-- NEW PDF LINK -->
+    <a href="sab_invest_privacy_statement 2.pdf" target="_blank" class="footer-link">
+        بيان الخصوصية
+    </a>
+    <span class="footer-license">ترخيص 07079-37</span>
+</footer>
+
+<script>
+    // Navbar scroll effect
+    const navbar = document.getElementById('navbar');
+    window.addEventListener('scroll', () => {
+        navbar.classList.toggle('scrolled', window.scrollY > 50);
+    });
+
+    // Menu toggle
+    const menuBtn = document.getElementById('menuBtn');
+    const navLinks = document.getElementById('navLinks');
+    menuBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        navLinks.classList.toggle('open');
+    });
+    document.addEventListener('click', e => {
+        if (!navLinks.contains(e.target) && !menuBtn.contains(e.target)) {
+            navLinks.classList.remove('open');
+        }
+    });
+
+    // Image slider
+    let current = 0;
+    const imgs = document.querySelectorAll('.slider-img');
+    setInterval(() => {
+        imgs[current].style.opacity = 0;
+        current = (current + 1) % imgs.length;
+        imgs[current].style.opacity = 1;
+    }, 5000);
+
+    // Scroll reveal
+    const observer = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+            if (e.isIntersecting) {
+                e.target.classList.add('visible');
+                // Stagger children if it's services grid
+                const children = e.target.querySelectorAll('.service-item, .stat-item');
+                children.forEach((el, i) => {
+                    el.style.transitionDelay = `${i * 0.07}s`;
+                    el.style.opacity = '0';
+                    el.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                        el.style.opacity = '1';
+                        el.style.transform = 'translateY(0)';
+                    }, i * 70 + 100);
+                });
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, addDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCteGTg7qhLBaoRENJEe0RMiC2yBCkyCVw",
+  authDomain: "sab-invest-crm.firebaseapp.com",
+  projectId: "sab-invest-crm",
+  storageBucket: "sab-invest-crm.firebasestorage.app",
+  messagingSenderId: "432529165928",
+  appId: "1:432529165928:web:0a4772c3330fb2fcd675dd",
+  measurementId: "G-G2SPRZM9MS"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const form = document.querySelector('.contact-form');
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const data = {
+    first_name: form.first_name.value,
+    last_name: form.last_name.value,
+    phone: form.phone.value,
+    email: form.email.value,
+    country: form.country.value,
+    status: "جديد",
+    createdAt: new Date()
+  };
+
+  try {
+    await addDoc(collection(db, "leads"), data);
+    alert("تم إرسال طلبك بنجاح");
+    form.reset();
+  } catch (error) {
+    alert("حدث خطأ، حاول مرة أخرى");
+    console.error(error);
+  }
+});
+</script>
+
+</body>
+</html>
