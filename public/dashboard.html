@@ -770,7 +770,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+<!-- TradingView Advanced Chart Widget (no library needed — loaded inline) -->
 
 <!-- ════ FIREBASE REALTIME SYNC ════ -->
 <script type="module">
@@ -808,8 +808,150 @@ function fmtFbTs(ts){
   if(isNaN(d))return null;
   return d.toLocaleString('en-GB',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
 }
-if(_userId){const tradesQ=query(collection(_db,'trades'),where('userId','==',_userId));onSnapshot(tradesQ,(snapshot)=>{snapshot.docChanges().forEach(change=>{const fbTrade=change.doc.data();const fbId=change.doc.id;if(change.type==='modified'){if(fbTrade.status==='closed'){const idx=openPositions.findIndex(p=>p._fbRef===fbId);if(idx!==-1){const pos={...openPositions[idx]};pos.closePrice=fbTrade.closePrice||pos.currentPrice;pos.pnl=Number(fbTrade.pl)||pos.pnl||0;pos.closeTime=fmtFbTs(fbTrade.closedAt)||fmtTime();pos.openTime=fmtFbTs(fbTrade.openedAt)||pos.openTime||fmtTime();pos.status='closed';pos.closeReason='crm';account.balance=parseFloat((account.balance+pos.pnl).toFixed(2));openPositions.splice(idx,1);closedPositions.unshift(pos);const h=historyLog.find(h=>h.id===pos.id);if(h)h.status='مغلق';saveArr('openPositions',openPositions);saveArr('closedPositions',closedPositions);saveArr('historyLog',historyLog);saveObj('account',account);if(typeof renderAllTabs==='function')renderAllTabs();if(typeof updateAccountDisplay==='function')updateAccountDisplay();const pnlStr=(pos.pnl>=0?'+':'')+'$'+Math.abs(pos.pnl).toFixed(2);const color=pos.pnl>=0?'#00c896':'#ef233c';showToast('🔒 تم إغلاق صفقة '+pos.symbol+' بواسطة الإدارة | '+pnlStr,color);}else{// already closed — update dates if changed by CRM
-const cp=closedPositions.find(p=>p._fbRef===fbId);if(cp){let dateChanged=false;const newOpen=fmtFbTs(fbTrade.openedAt);const newClose=fmtFbTs(fbTrade.closedAt);if(newOpen&&newOpen!==cp.openTime){cp.openTime=newOpen;dateChanged=true;}if(newClose&&newClose!==cp.closeTime){cp.closeTime=newClose;dateChanged=true;}if(dateChanged){saveArr('closedPositions',closedPositions);if(typeof renderClosedPositions==='function')renderClosedPositions();}}}}if(fbTrade.status==='open'){const pos=openPositions.find(p=>p._fbRef===fbId);if(pos){let changed=false;if(fbTrade.sl!=null&&String(fbTrade.sl)!==String(pos.sl)){pos.sl=fbTrade.sl;changed=true;}if(fbTrade.tp!=null&&String(fbTrade.tp)!==String(pos.tp)){pos.tp=fbTrade.tp;changed=true;}if(fbTrade.lots!=null&&fbTrade.lots!==pos.lots){pos.lots=fbTrade.lots;changed=true;}const newOpen=fmtFbTs(fbTrade.openedAt);if(newOpen&&newOpen!==pos.openTime){pos.openTime=newOpen;changed=true;}if(changed){saveArr('openPositions',openPositions);if(typeof renderOpenPositions==='function')renderOpenPositions();showToast('✏️ تم تعديل صفقة '+pos.symbol+' بواسطة الإدارة','#f59e0b');}}}}if(change.type==='added'&&fbTrade.source==='crm'){const alreadyLocal=openPositions.some(p=>p._fbRef===fbId)||closedPositions.some(p=>p._fbRef===fbId);if(!alreadyLocal&&fbTrade.status==='open'){const openTime=fmtFbTs(fbTrade.openedAt)||fmtTime();const newPos={id:Date.now()+Math.random(),_fbRef:fbId,symbol:fbTrade.symbol||'—',type:(fbTrade.direction||'BUY').toLowerCase(),lots:fbTrade.lots||0.01,openPrice:fbTrade.openPrice||0,currentPrice:fbTrade.openPrice||0,sl:fbTrade.sl||'—',tp:fbTrade.tp||'—',pnl:0,marginUsed:(fbTrade.lots||0.01)*1000*0.02,openTime,status:'open'};openPositions.push(newPos);historyLog.unshift({id:newPos.id,symbol:newPos.symbol,type:newPos.type,lots:newPos.lots,price:newPos.openPrice,orderType:'market',status:'مفتوح',time:newPos.openTime});saveArr('openPositions',openPositions);saveArr('historyLog',historyLog);if(typeof startPnlTimer==='function')startPnlTimer(newPos);if(typeof renderAllTabs==='function')renderAllTabs();if(typeof updateAccountDisplay==='function')updateAccountDisplay();showToast('📈 تمت إضافة صفقة '+newPos.symbol+' '+(newPos.type==='buy'?'شراء':'بيع')+' بواسطة الإدارة','#00c896');}}});});}
+if(_userId){
+  const tradesQ=query(collection(_db,'trades'),where('userId','==',_userId));
+
+  function applyFbTradeFields(localTrade, fbTrade){
+    let changed=false;
+    const newOpen  = fmtFbTs(fbTrade.openedAt);
+    const newClose = fmtFbTs(fbTrade.closedAt);
+    const map = [
+      ['symbol', fbTrade.symbol],
+      ['type', fbTrade.direction ? String(fbTrade.direction).toLowerCase() : undefined],
+      ['lots', fbTrade.lots],
+      ['openPrice', fbTrade.openPrice],
+      ['closePrice', fbTrade.closePrice],
+      ['sl', fbTrade.sl],
+      ['tp', fbTrade.tp],
+      ['pnl', fbTrade.pl]
+    ];
+    map.forEach(([key,val])=>{
+      if(val!==undefined && val!==null && String(localTrade[key])!==String(val)){
+        localTrade[key] = (key==='pnl'||key==='lots'||key==='openPrice'||key==='closePrice') ? Number(val) : val;
+        changed=true;
+      }
+    });
+    if(newOpen && newOpen!==localTrade.openTime){localTrade.openTime=newOpen;changed=true;}
+    if(newClose && newClose!==localTrade.closeTime){localTrade.closeTime=newClose;changed=true;}
+    return changed;
+  }
+
+  onSnapshot(tradesQ,(snapshot)=>{
+    snapshot.docChanges().forEach(change=>{
+      const fbTrade=change.doc.data();
+      const fbId=change.doc.id;
+
+      if(change.type==='removed'){
+        const beforeOpen=openPositions.length;
+        const beforeClosed=closedPositions.length;
+        openPositions=openPositions.filter(p=>p._fbRef!==fbId);
+        closedPositions=closedPositions.filter(p=>p._fbRef!==fbId);
+        futureOrders=futureOrders.filter(p=>p._fbRef!==fbId);
+        if(openPositions.length!==beforeOpen || closedPositions.length!==beforeClosed){
+          saveArr('openPositions',openPositions);
+          saveArr('closedPositions',closedPositions);
+          saveArr('futureOrders',futureOrders);
+          if(typeof renderAllTabs==='function')renderAllTabs();
+          if(typeof updateAccountDisplay==='function')updateAccountDisplay();
+          showToast('🗑️ تم حذف صفقة بواسطة الإدارة','#f59e0b');
+        }
+        return;
+      }
+
+      if(change.type==='modified'){
+        if(fbTrade.status==='closed'){
+          const idx=openPositions.findIndex(p=>p._fbRef===fbId);
+          if(idx!==-1){
+            const pos={...openPositions[idx]};
+            applyFbTradeFields(pos,fbTrade);
+            pos.closePrice = fbTrade.closePrice ?? pos.currentPrice;
+            pos.pnl        = Number(fbTrade.pl ?? pos.pnl ?? 0);
+            pos.closeTime  = fmtFbTs(fbTrade.closedAt)||fmtTime();
+            pos.openTime   = fmtFbTs(fbTrade.openedAt)||pos.openTime||fmtTime();
+            pos.status='closed';
+            pos.closeReason='crm';
+            // The CRM also updates the user balance document, so the user listener will sync balance.
+            openPositions.splice(idx,1);
+            closedPositions.unshift(pos);
+            const h=historyLog.find(h=>h.id===pos.id);
+            if(h){h.status='مغلق';h.symbol=pos.symbol;h.type=pos.type;h.lots=pos.lots;h.price=pos.openPrice;h.time=pos.openTime;}
+            saveArr('openPositions',openPositions);
+            saveArr('closedPositions',closedPositions);
+            saveArr('historyLog',historyLog);
+            if(typeof renderAllTabs==='function')renderAllTabs();
+            if(typeof updateAccountDisplay==='function')updateAccountDisplay();
+            const pnlStr=(pos.pnl>=0?'+':'')+'$'+Math.abs(pos.pnl).toFixed(2);
+            const color=pos.pnl>=0?'#00c896':'#ef233c';
+            showToast('🔒 تم إغلاق صفقة '+pos.symbol+' بواسطة الإدارة | '+pnlStr,color);
+          }else{
+            // Already closed: sync every edited field from CRM to the client's closed trades table.
+            const cp=closedPositions.find(p=>p._fbRef===fbId);
+            if(cp){
+              const changed=applyFbTradeFields(cp,fbTrade);
+              cp.status='closed';
+              if(changed){
+                saveArr('closedPositions',closedPositions);
+                if(typeof renderAllTabs==='function')renderAllTabs();
+                showToast('✏️ تم تحديث الصفقة المغلقة بواسطة الإدارة','#f59e0b');
+              }
+            }else if(fbTrade.source==='crm'){
+              const openTime=fmtFbTs(fbTrade.openedAt)||fmtTime();
+              const closeTime=fmtFbTs(fbTrade.closedAt)||fmtTime();
+              const newClosed={
+                id:Date.now()+Math.random(),_fbRef:fbId,
+                symbol:fbTrade.symbol||'—',
+                type:(fbTrade.direction||'BUY').toLowerCase(),
+                lots:Number(fbTrade.lots)||0.01,
+                openPrice:Number(fbTrade.openPrice)||0,
+                closePrice:Number(fbTrade.closePrice)||0,
+                sl:fbTrade.sl||'—',tp:fbTrade.tp||'—',
+                pnl:Number(fbTrade.pl)||0,
+                openTime,closeTime,status:'closed',closeReason:'crm'
+              };
+              closedPositions.unshift(newClosed);
+              saveArr('closedPositions',closedPositions);
+              if(typeof renderAllTabs==='function')renderAllTabs();
+            }
+          }
+        }
+
+        if(fbTrade.status==='open'){
+          const pos=openPositions.find(p=>p._fbRef===fbId);
+          if(pos){
+            const changed=applyFbTradeFields(pos,fbTrade);
+            pos.status='open';
+            if(changed){
+              saveArr('openPositions',openPositions);
+              if(typeof renderAllTabs==='function')renderAllTabs();
+              showToast('✏️ تم تعديل صفقة '+pos.symbol+' بواسطة الإدارة','#f59e0b');
+            }
+          }
+        }
+      }
+
+      if(change.type==='added'&&fbTrade.source==='crm'){
+        const alreadyLocal=openPositions.some(p=>p._fbRef===fbId)||closedPositions.some(p=>p._fbRef===fbId);
+        if(!alreadyLocal&&fbTrade.status==='open'){
+          const openTime=fmtFbTs(fbTrade.openedAt)||fmtTime();
+          const newPos={id:Date.now()+Math.random(),_fbRef:fbId,symbol:fbTrade.symbol||'—',type:(fbTrade.direction||'BUY').toLowerCase(),lots:fbTrade.lots||0.01,openPrice:fbTrade.openPrice||0,currentPrice:fbTrade.openPrice||0,sl:fbTrade.sl||'—',tp:fbTrade.tp||'—',pnl:0,marginUsed:(fbTrade.lots||0.01)*1000*0.02,openTime,status:'open'};
+          openPositions.push(newPos);
+          historyLog.unshift({id:newPos.id,symbol:newPos.symbol,type:newPos.type,lots:newPos.lots,price:newPos.openPrice,orderType:'market',status:'مفتوح',time:newPos.openTime});
+          saveArr('openPositions',openPositions);saveArr('historyLog',historyLog);
+          if(typeof startPnlTimer==='function')startPnlTimer(newPos);
+          if(typeof renderAllTabs==='function')renderAllTabs();
+          if(typeof updateAccountDisplay==='function')updateAccountDisplay();
+          showToast('📈 تمت إضافة صفقة '+newPos.symbol+' '+(newPos.type==='buy'?'شراء':'بيع')+' بواسطة الإدارة','#00c896');
+        }
+        if(!alreadyLocal&&fbTrade.status==='closed'){
+          const newClosed={id:Date.now()+Math.random(),_fbRef:fbId,symbol:fbTrade.symbol||'—',type:(fbTrade.direction||'BUY').toLowerCase(),lots:Number(fbTrade.lots)||0.01,openPrice:Number(fbTrade.openPrice)||0,closePrice:Number(fbTrade.closePrice)||0,sl:fbTrade.sl||'—',tp:fbTrade.tp||'—',pnl:Number(fbTrade.pl)||0,openTime:fmtFbTs(fbTrade.openedAt)||fmtTime(),closeTime:fmtFbTs(fbTrade.closedAt)||fmtTime(),status:'closed',closeReason:'crm'};
+          closedPositions.unshift(newClosed);
+          saveArr('closedPositions',closedPositions);
+          if(typeof renderAllTabs==='function')renderAllTabs();
+        }
+      }
+    });
+  });
+}
 </script>
 
 <script>
@@ -933,6 +1075,8 @@ let orderSide='buy';
 let currentSymbol='TVC:GOLD';
 let currentTF='60';
 let tvWidget=null;
+let tvScraperInterval=null;
+let tvQuoteInterval=null;
 let activeIndicators=JSON.parse(localStorage.getItem('activeIndicators')||'[]');
 let indCatFilter='all';
 
@@ -1041,188 +1185,61 @@ function toggleLangSubmenu(e){e.preventDefault();e.stopPropagation();const sub=s
   }
 }catch(e){}})();
 
-// ════ TRADINGVIEW ════
-function initChart(symbol,interval){
-    if(tvWidget){try{tvWidget.remove();}catch(e){}}
-    if(tvScraperInterval){ clearInterval(tvScraperInterval); tvScraperInterval=null; }
-    if(tvQuoteInterval){ clearInterval(tvQuoteInterval); tvQuoteInterval=null; }
+// ════ TRADINGVIEW ADVANCED CHART ════
 
-    tvWidget=new TradingView.widget({
-        container_id:'tradingview_chart',symbol,interval,
-        timezone:'Asia/Riyadh',theme:'dark',style:'1',
-        locale:lang==='ar'?'ar':'en',
-        toolbar_bg:'#0c0c10',enable_publishing:false,
-        backgroundColor:'#060608',width:'100%',height:'100%',
-        autosize:true,allow_symbol_change:false,
-        studies:activeIndicators.map(id=>{const ind=allIndicators.find(i=>i.id===id);return ind?ind.tv:null;}).filter(Boolean),
-        overrides:{"paneProperties.background":"#060608","scalesProperties.textColor":"#666","scalesProperties.lineColor":"rgba(255,255,255,0.06)"},
-        // Use TV's built-in quote subscription to sync prices to our list
-        datafeed: undefined,
+function initChart(symbol, interval){
+    // Clear previous widget
+    if(tvWidget){ tvWidget = null; }
+    if(tvScraperInterval){ clearInterval(tvScraperInterval); tvScraperInterval = null; }
+    if(tvQuoteInterval){   clearInterval(tvQuoteInterval);   tvQuoteInterval   = null; }
+
+    // Clear container and rebuild
+    const wrap = s('tvWrap');
+    if(!wrap) return;
+    const old = s('tradingview_chart');
+    if(old) old.remove();
+
+    // Create widget container
+    const container = document.createElement('div');
+    container.className = 'tradingview-widget-container';
+    container.id = 'tradingview_chart';
+    container.style.cssText = 'height:100%;width:100%;';
+    container.innerHTML = '<div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>';
+    wrap.appendChild(container);
+
+    // Map interval to TradingView format
+    const tvInterval = interval === '60' ? '60' : interval === 'D' ? 'D' : interval === 'W' ? 'W' : interval;
+
+    // Load the Advanced Chart Widget script
+    const script = document.createElement('script');
+    script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    script.type = 'text/javascript';
+    script.async = true;
+    script.textContent = JSON.stringify({
+        autosize: true,
+        symbol: symbol,
+        interval: tvInterval,
+        timezone: 'Asia/Riyadh',
+        theme: 'dark',
+        style: '1',
+        locale: lang === 'ar' ? 'ar' : 'en',
+        allow_symbol_change: false,
+        calendar: false,
+        hide_top_toolbar: false,
+        hide_legend: false,
+        save_image: false,
+        backgroundColor: 'rgba(6,6,8,1)',
+        gridColor: 'rgba(255,255,255,0.04)',
+        studies: activeIndicators
+            .map(id => { const ind = allIndicators.find(i => i.id === id); return ind ? ind.tv : null; })
+            .filter(Boolean),
+        support_host: 'https://www.tradingview.com',
     });
+    container.appendChild(script);
 
-    // ── When chart is ready, subscribe to real-time quotes via TV widget API ──
-    tvWidget.onChartReady(() => {
-        try {
-            // Subscribe to symbol price updates from the chart itself
-            tvWidget.activeChart().getTimezoneApi && console.log('TV chart ready');
-
-            // Method 1: Try widget.getQuotes() — available in some TV versions
-            if(typeof tvWidget.getQuotes === 'function'){
-                const syncFromTV = () => {
-                    tvWidget.getQuotes([symbol], quotes => {
-                        if(!quotes || !quotes[0]) return;
-                        const q = quotes[0].v;
-                        const price = q.lp || q.last_price || q.close;
-                        if(price && price > 0){
-                            const inst = instruments.find(i => i.symbol === currentSymbol);
-                            if(inst){
-                                applyRealPrice(inst, parseFloat(price), 'tv-widget-quote');
-                            }
-                        }
-                    }, err => {});
-                };
-                syncFromTV();
-                // Poll every 1.5s via widget's own quote API
-                tvQuoteInterval = setInterval(syncFromTV, 1500);
-                console.log('✅ TV widget.getQuotes() active — syncing list from chart');
-                return; // Don't need DOM scraper if getQuotes works
-            }
-
-            // Method 2: Subscribe via activeChart symbol info
-            if(tvWidget.activeChart && typeof tvWidget.activeChart === 'function'){
-                const chart = tvWidget.activeChart();
-                if(chart && typeof chart.symbolInterval === 'function'){
-                    // Hook into the chart's crosshair move for last price
-                    chart.crossHairMoved && chart.crossHairMoved(({ price }) => {
-                        if(price > 0){
-                            const inst = instruments.find(i => i.symbol === currentSymbol);
-                            if(inst) applyRealPrice(inst, price, 'tv-crosshair');
-                        }
-                    });
-                }
-            }
-        } catch(e) { console.warn('TV onChartReady:', e.message); }
-
-        // Always start the DOM scraper as final fallback
-        startTVDomScraper();
-    });
+    console.log('✅ TradingView Advanced Chart loaded:', symbol, tvInterval);
+    tvWidget = { symbol, interval: tvInterval }; // lightweight reference
 }
-
-// ════════════════════════════════════════════════════════
-// TradingView DOM Price Scraper
-// Reads the live price from chart's right-axis (scale)
-// and syncs it to the instruments list every second.
-// This is the most accurate source — same number the chart shows.
-// ════════════════════════════════════════════════════════
-let tvScraperInterval = null;
-
-function startTVDomScraper(){
-    if(tvScraperInterval) clearInterval(tvScraperInterval);
-    tvScraperInterval = setInterval(scrapeTVPrice, 1000);
-}
-
-function scrapeTVPrice(){
-    try{
-        const iframe = document.querySelector('#tradingview_chart iframe');
-        if(!iframe) return;
-
-        // Try cross-origin access (works on some deployments / same origin)
-        try{
-            const doc = iframe.contentDocument || iframe.contentWindow?.document;
-            if(doc){
-                const selectors = [
-                    '[class*="lastValue"]',
-                    '[class*="priceValue"]',
-                    '[class*="price-axis__last"]',
-                    '[class*="lastPriceAnimation"]',
-                    '[class*="last-price"]',
-                    '.tv-symbol-price-quote__value',
-                    '[data-field="last_price"]',
-                    '[class*="currentPrice"]',
-                    '[class*="js-symbol-last"]',
-                ];
-                for(const sel of selectors){
-                    const els = doc.querySelectorAll(sel);
-                    for(const el of els){
-                        if(!el || !el.textContent) continue;
-                        const raw = el.textContent.replace(/,/g,'').trim();
-                        const price = parseFloat(raw);
-                        if(price > 10){ syncTVPriceToList(price,'dom-iframe'); return; }
-                    }
-                }
-
-                // Also try reading from the price scale (right axis labels)
-                const scaleLabels = doc.querySelectorAll('[class*="price-axis"] [class*="label"], [class*="priceAxisLabel"]');
-                let maxLabel = 0;
-                scaleLabels.forEach(el => {
-                    const p = parseFloat((el.textContent||'').replace(/,/g,''));
-                    if(p > maxLabel) maxLabel = p;
-                });
-                if(maxLabel > 10) syncTVPriceToList(maxLabel, 'dom-scale');
-            }
-        }catch(crossOrigin){}
-
-        // postMessage bridge: inject a script to read TV price and post it back
-        // We send a request and TV's onmessage handler will reply
-        try{
-            iframe.contentWindow?.postMessage(JSON.stringify({name:'tv-price-request',symbol:currentSymbol}), '*');
-        }catch(e){}
-
-    }catch(e){}
-}
-
-// ── syncTVPriceToList: push TV price to the list for current symbol ──
-function syncTVPriceToList(price, src){
-    if(!price||isNaN(price)||price<=0) return;
-    const inst = instruments.find(i => i.symbol===currentSymbol);
-    if(!inst) return;
-    // Sanity: skip if price jumps >5% (chart may still be loading)
-    const cur = parseFloat(String(inst.buy).replace(/,/g,''));
-    if(cur>0 && Math.abs(price-cur)/cur > 0.05) return;
-    applyRealPrice(inst, price, src||'tradingview-live');
-}
-
-// ── Hook TradingView postMessage events ──
-// The TV widget communicates with the page via postMessage
-window.addEventListener('message', ev=>{
-    try{
-        const raw = ev.data;
-        if(!raw) return;
-        const msg = typeof raw==='string' ? JSON.parse(raw) : raw;
-        if(!msg) return;
-
-        let price = 0;
-
-        // TradingView internal quote update messages
-        if(msg.name==='quoteUpdate' || msg.type==='quoteUpdate'){
-            const d = msg.data || msg;
-            price = parseFloat(d.lp || d.last_price || d.close || 0);
-        }
-        // Symbol info / resolve messages
-        else if(msg.name==='widgetReady' || msg.source==='tradingview'){
-            price = parseFloat(msg.lp || msg.last_price || 0);
-        }
-        // Generic price fields
-        else if(msg.lp)         { price = parseFloat(msg.lp); }
-        else if(msg.last_price) { price = parseFloat(msg.last_price); }
-        else if(msg.close)      { price = parseFloat(msg.close); }
-        else if(msg.price && typeof msg.price === 'number') { price = msg.price; }
-
-        // TV chart data messages (array format)
-        else if(Array.isArray(msg) && msg.length > 0){
-            const item = msg.find(m => m && (m.lp || m.last_price));
-            if(item) price = parseFloat(item.lp || item.last_price || 0);
-        }
-
-        // TV series data
-        else if(msg.m === 'qsd' && msg.p){
-            const qData = msg.p[1] || {};
-            price = parseFloat(qData.lp || qData.last_price || 0);
-        }
-
-        if(price > 0) syncTVPriceToList(price, 'tv-postmessage');
-    }catch(e){}
-});
 
 function updateSymbol(symbol,displayName,fullName,buyPrice,sellPrice){
     currentSymbol=symbol;
@@ -1374,15 +1391,16 @@ const livePriceCache = {};
 // ── API KEYS (free tiers — replace with your own if needed) ──
 // Polygon.io  : free key — 15-min delayed for stocks, real-time websocket
 // Sign up at https://polygon.io (free plan: Starter)
+const PRICE_SERVER  = 'https://sab-invest-server.onrender.com';
+const FH_KEY        = 'd7tjtkhr01qlbd3kf4dgd7tjtkhr01qlbd3kf4e0';
 const POLYGON_KEY   = 'r5qrZp3tzCPH_csmyAP5gquyc6iWvQOp';
 
 // Alpha Vantage: free key — 25 requests/day on free plan
 // Sign up at https://www.alphavantage.co/support/#api-key
 const AV_KEY        = 'BDIU7XNG3JHO1OK2';
 
-// ══ PRICE PROXY SERVER — API keys are hidden on the server ══
-const PRICE_SERVER = 'https://sab-invest-server.onrender.com';
-// Keys below are now only used as fallback if server is unreachable
+// Twelve Data: primary source for gold / forex / stocks.
+// Note: API keys inside HTML are visible to users; for production, proxy this through your backend.
 const TWELVEDATA_KEY = '58d76203bc064ac6baefbbb4055c2b8f';
 
 // ── Helper ──
@@ -1489,22 +1507,7 @@ function initFocusedTwelveWS(){
 }
 
 async function fetchTwelveDataSymbols(symbols){
-    if(!symbols.length) return;
-    try{
-        // ── Use proxy server (hides API key) ──
-        const url = PRICE_SERVER + '/batch?symbols=' + encodeURIComponent(symbols.join(','));
-        const res = await fetch(url, {signal:AbortSignal.timeout(10000)});
-        const data = await res.json();
-        if(data && data.prices){
-            Object.entries(data.prices).forEach(([tdSymbol, obj]) => {
-                const price = parseFloat(obj?.price);
-                if(price) handleTwelveDataPrice({symbol:tdSymbol, price});
-            });
-            if(Object.keys(data.prices).length > 0) return; // success
-        }
-    }catch(e){ console.warn('Proxy batch error:', e.message); }
-
-    // ── Fallback: direct Twelve Data call ──
+    if(!TWELVEDATA_KEY || TWELVEDATA_KEY.includes('YOUR_') || !symbols.length) return;
     try{
         const url = 'https://api.twelvedata.com/price?symbol=' + encodeURIComponent(symbols.join(',')) + '&apikey=' + TWELVEDATA_KEY;
         const res = await fetch(url, {signal:AbortSignal.timeout(10000)});
@@ -1517,7 +1520,7 @@ async function fetchTwelveDataSymbols(symbols){
         } else if(data?.price && symbols.length === 1){
             handleTwelveDataPrice({symbol:symbols[0], price:data.price});
         }
-    }catch(e){ console.warn('Twelve Data direct:', e.message); }
+    }catch(e){ console.warn('Twelve Data snapshot:', e.message); }
 }
 
 async function fetchTwelveFocusedSnapshot(){
@@ -1718,58 +1721,46 @@ let avForexIdx = 0;  // rotate through forex pairs one by one
 let avStockIdx = 0;
 
 async function fetchAVForexOne(){
+    // AV key active
     const pair = AV_FOREX[avForexIdx % AV_FOREX.length];
     avForexIdx++;
     try{
-        // ── Use proxy server (API key hidden) ──
-        const url = PRICE_SERVER + '/forex?from=' + pair.from + '&to=' + pair.to;
-        const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
-        const data = await res.json();
-        if(data && data.price){
-            const inst = instruments.find(i=>i.symbol===pair.tvSym);
-            if(inst){ if(!inst._open) inst._open = data.bid||data.price; applyRealPrice(inst, data.price, 'proxy-forex'); }
-            return;
-        }
-    }catch(e){}
-    // ── Fallback: direct AV ──
-    try{
         const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${pair.from}&to_currency=${pair.to}&apikey=${AV_KEY}`;
-        const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
+        const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
         const data = await res.json();
         const rate = data['Realtime Currency Exchange Rate'];
         if(!rate) return;
         const price = parseFloat(rate['5. Exchange Rate']);
-        if(!price||isNaN(price)) return;
-        const inst = instruments.find(i=>i.symbol===pair.tvSym);
-        if(inst){ if(!inst._open) inst._open = parseFloat(rate['8. Bid Price'])||price; applyRealPrice(inst, price, 'alphavantage'); }
+        if(!price || isNaN(price)) return;
+        const inst = instruments.find(i => i.symbol === pair.tvSym);
+        if(inst){
+            const open = parseFloat(rate['8. Bid Price']) || price;
+            if(!inst._open) inst._open = open;
+            applyRealPrice(inst, price, 'alphavantage');
+            console.log(`✅ Alpha Vantage ${pair.from}/${pair.to}: ${price}`);
+        }
     }catch(e){ console.warn('AV Forex:', e.message); }
 }
 
 async function fetchAVStockOne(){
+    // AV key active
     const stock = AV_STOCKS[avStockIdx % AV_STOCKS.length];
     avStockIdx++;
     try{
-        // ── Use proxy server (API key hidden) ──
-        const url = PRICE_SERVER + '/stock?symbol=' + stock.symbol;
-        const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
-        const data = await res.json();
-        if(data && data.price){
-            const inst = instruments.find(i=>i.symbol===stock.tvSym);
-            if(inst){ if(!inst._open) inst._open = data.open||data.price; applyRealPrice(inst, data.price, 'proxy-stock'); }
-            return;
-        }
-    }catch(e){}
-    // ── Fallback: direct AV ──
-    try{
         const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${stock.symbol}&apikey=${AV_KEY}`;
-        const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
+        const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
         const data = await res.json();
         const q = data['Global Quote'];
         if(!q) return;
         const price = parseFloat(q['05. price']);
-        if(!price||isNaN(price)) return;
-        const inst = instruments.find(i=>i.symbol===stock.tvSym);
-        if(inst){ if(!inst._open) inst._open = parseFloat(q['02. open'])||price; applyRealPrice(inst, price, 'alphavantage'); }
+        if(!price || isNaN(price)) return;
+        const inst = instruments.find(i => i.symbol === stock.tvSym);
+        if(inst){
+            const open = parseFloat(q['02. open']) || price;
+            if(!inst._open) inst._open = open;
+            applyRealPrice(inst, price, 'alphavantage');
+            console.log(`✅ Alpha Vantage ${stock.symbol}: ${price}`);
+        }
     }catch(e){ console.warn('AV Stock:', e.message); }
 }
 
@@ -1930,7 +1921,6 @@ async function fetchTVQuoteSingle(tvSymbol){
 }
 
 // Poll the current symbol every 2 seconds — very close to real-time
-let tvQuoteInterval = null;
 // ── Multi-source real-time price fetcher ──
 // Uses multiple free APIs with no CORS issues
 
@@ -1955,24 +1945,6 @@ async function fetchMetalsLive(){
 
 // Source B: Alpha Vantage for Gold/Silver (AV key = BDIU7XNG3JHO1OK2)
 async function fetchAVGoldSilver(){
-    const metals = ['XAU/USD','XAG/USD','XPT/USD'];
-    try{
-        // ── Use proxy server ──
-        const url = PRICE_SERVER + '/batch?symbols=' + encodeURIComponent(metals.join(','));
-        const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
-        const data = await res.json();
-        if(data && data.prices){
-            const metalTVMap = {'XAU/USD':'TVC:GOLD','XAG/USD':'TVC:SILVER','XPT/USD':'TVC:PLATINUM'};
-            Object.entries(data.prices).forEach(([sym, obj])=>{
-                const tvSym = metalTVMap[sym];
-                const inst = instruments.find(i=>i.symbol===tvSym);
-                if(inst && obj.price){ applyRealPrice(inst, obj.price, 'proxy-metals'); }
-            });
-            return;
-        }
-    }catch(e){ console.warn('Proxy metals error:', e.message); }
-
-    // ── Fallback: direct AV ──
     const pairs = [
         {from:'XAU', to:'USD', tvSym:'TVC:GOLD'},
         {from:'XAG', to:'USD', tvSym:'TVC:SILVER'},
@@ -1980,16 +1952,21 @@ async function fetchAVGoldSilver(){
     for(const pair of pairs){
         try{
             const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${pair.from}&to_currency=${pair.to}&apikey=${AV_KEY}`;
-            const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
+            const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
             const data = await res.json();
             const rate = data['Realtime Currency Exchange Rate'];
             if(!rate) continue;
             const price = parseFloat(rate['5. Exchange Rate']);
             if(!price || isNaN(price)) continue;
-            const inst = instruments.find(i=>i.symbol===pair.tvSym);
-            if(inst) applyRealPrice(inst, price, 'alphavantage-gold');
+            const inst = instruments.find(i => i.symbol === pair.tvSym);
+            if(inst){
+                if(!inst._open) inst._open = parseFloat(rate['8. Bid Price']) || price;
+                applyRealPrice(inst, price, 'alphavantage-gold');
+                console.log(`✅ AV ${pair.from}/${pair.to}: ${price}`);
+                if(inst.symbol === currentSymbol){ const cp=s('chartPrice'); if(cp) cp.textContent=inst.buy; }
+            }
             await new Promise(r=>setTimeout(r,1200));
-        }catch(e){ console.warn('AV Gold direct:', e.message); }
+        }catch(e){ console.warn('AV Gold/Silver:', e.message); }
     }
 }
 
@@ -2003,23 +1980,6 @@ async function fetchCoinGeckoPrices(){
         'chainlink':'COINBASE:LINKUSD',
     };
     try{
-        // ── Use proxy server ──
-        const res = await fetch(PRICE_SERVER + '/crypto', {signal:AbortSignal.timeout(8000)});
-        const data = await res.json();
-        if(data && data.prices){
-            Object.entries(cgMap).forEach(([cgId, tvSym])=>{
-                const p = data.prices[cgId]?.usd;
-                if(!p) return;
-                const inst = instruments.find(i=>i.symbol===tvSym);
-                if(inst) applyRealPrice(inst, p, 'proxy-crypto');
-            });
-            console.log('✅ Proxy crypto prices updated');
-            return;
-        }
-    }catch(e){ console.warn('Proxy crypto error:', e.message); }
-
-    // ── Fallback: direct CoinGecko ──
-    try{
         const ids = Object.keys(cgMap).join(',');
         const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
         const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
@@ -2028,9 +1988,10 @@ async function fetchCoinGeckoPrices(){
             const p = data[cgId]?.usd;
             if(!p) return;
             const inst = instruments.find(i=>i.symbol===tvSym);
-            if(inst) applyRealPrice(inst, p, 'coingecko');
+            if(inst){ applyRealPrice(inst, p, 'coingecko'); }
         });
-    }catch(e){ console.warn('CoinGecko direct:', e.message); }
+        console.log('✅ CoinGecko crypto prices updated');
+    }catch(e){ console.warn('CoinGecko:', e.message); }
 }
 
 // Source D: Open Exchange Rates for forex (free tier, no CORS)
@@ -2068,52 +2029,32 @@ async function fetchOpenExchangeForex(){
 
 // Source E: Indices via Yahoo Finance proxy
 async function fetchIndicesYahoo(){
-    const yahooToTV = {
-        '^GSPC':'TVC:SPX','^DJI':'TVC:DJI','^NDX':'TVC:NDX',
-        '^VIX':'TVC:VIX','^FTSE':'TVC:UK100','^GDAXI':'TVC:DEU40',
-        '^FCHI':'TVC:FRA40','^N225':'TVC:JPN225','^HSI':'TVC:HSI',
-    };
-    try{
-        // ── Use proxy server ──
-        const res = await fetch(PRICE_SERVER + '/indices', {signal:AbortSignal.timeout(10000)});
-        const data = await res.json();
-        if(data && data.prices){
-            Object.entries(data.prices).forEach(([yahoo, obj])=>{
-                const tvSym = yahooToTV[yahoo];
-                if(!tvSym) return;
-                const inst = instruments.find(i=>i.symbol===tvSym);
-                if(inst && obj.price){
-                    if(obj.open && !inst._open) inst._open = obj.open;
-                    applyRealPrice(inst, obj.price, 'proxy-indices');
-                }
-            });
-            console.log('✅ Proxy indices updated');
-            return;
-        }
-    }catch(e){ console.warn('Proxy indices error:', e.message); }
-
-    // ── Fallback: allorigins proxy ──
     const indexMap = {
         '%5EGSPC':'TVC:SPX','%5EDJI':'TVC:DJI','%5ENDX':'TVC:NDX',
         '%5EVIX':'TVC:VIX','%5EFTSE':'TVC:UK100','%5EGDAXI':'TVC:DEU40',
         '%5EFCHI':'TVC:FRA40','%5EN225':'TVC:JPN225','%5EHSI':'TVC:HSI',
     };
+    const tickers = Object.keys(indexMap).join(',');
+    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}&fields=regularMarketPrice,regularMarketOpen`;
+    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
     try{
-        const tickers = Object.keys(indexMap).join(',');
-        const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}&fields=regularMarketPrice,regularMarketOpen`;
-        const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
         const res = await fetch(proxy, {signal:AbortSignal.timeout(10000)});
         const json = await res.json();
         const quotes = JSON.parse(json.contents)?.quoteResponse?.result||[];
         quotes.forEach(q=>{
             const price = q.regularMarketPrice;
             if(!price) return;
-            const tvSym = indexMap[encodeURIComponent(q.symbol)] || indexMap[q.symbol];
+            const encoded = encodeURIComponent(q.symbol);
+            const tvSym = indexMap[encoded] || indexMap[q.symbol];
             if(!tvSym) return;
             const inst = instruments.find(i=>i.symbol===tvSym);
-            if(inst) applyRealPrice(inst, price, 'yahoo-direct');
+            if(inst){
+                if(q.regularMarketOpen && !inst._open) inst._open = q.regularMarketOpen;
+                applyRealPrice(inst, price, 'yahoo-indices');
+                console.log(`✅ Index ${tvSym}: ${price}`);
+            }
         });
-    }catch(e){ console.warn('Yahoo fallback:', e.message); }
+    }catch(e){ console.warn('Yahoo indices:', e.message); }
 }
 
 // Start all sources immediately
@@ -2549,7 +2490,8 @@ restartTimers();
 updateOrderCalc();
 
 window.addEventListener('load',()=>{
-    setTimeout(()=>{ initChart(currentSymbol,currentTF); }, 500);
+    // Init chart immediately — Advanced Chart Widget loads its own scripts
+    setTimeout(()=>{ initChart(currentSymbol, currentTF); }, 300);
 
     // ── Aggressive initial price fetch: run all sources immediately on load ──
     console.log('🚀 Loading real prices on startup...');
