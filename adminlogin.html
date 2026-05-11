@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لوحة الإدارة | الأول للاستثمار</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #ef233c;
+            --red-dim: rgba(239,35,60,0.12);
+            --red-glow: rgba(239,35,60,0.4);
+            --border: rgba(255,255,255,0.08);
+            --muted: #666;
+            --green: #22c55e;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { height: 100%; }
+        body { font-family: 'Cairo', sans-serif; background: #000; color: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; }
+        .bg { position: fixed; inset: 0; z-index: 0; background: radial-gradient(ellipse at 20% 50%, rgba(239,35,60,0.06) 0%, transparent 55%), radial-gradient(ellipse at 80% 30%, rgba(239,35,60,0.04) 0%, transparent 50%); }
+        .bg::after { content: ''; position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px); background-size: 40px 40px; }
+        .login-card { position: relative; z-index: 1; width: 100%; max-width: 400px; margin: 20px; background: rgba(8,8,8,0.95); border: 1px solid var(--border); border-radius: 24px; padding: 44px 36px; backdrop-filter: blur(20px); box-shadow: 0 0 0 1px rgba(255,255,255,0.04), 0 40px 80px rgba(0,0,0,0.8); }
+        .login-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(to left, transparent, var(--red), transparent); border-radius: 24px 24px 0 0; }
+        .logo-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+        .logo-box { width: 44px; height: 44px; background: var(--red); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.2rem; }
+        .logo-text-main { font-size: 0.95rem; font-weight: 700; }
+        .logo-text-sub { font-size: 0.6rem; color: var(--red); letter-spacing: 0.15em; display: block; }
+        .admin-badge { margin-right: auto; background: rgba(239,35,60,0.1); border: 1px solid rgba(239,35,60,0.25); color: var(--red); font-size: 0.6rem; font-weight: 800; letter-spacing: 0.15em; padding: 3px 10px; border-radius: 100px; }
+        .login-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 6px; }
+        .login-sub { font-size: 0.82rem; color: var(--muted); font-weight: 300; margin-bottom: 28px; line-height: 1.5; }
+        .field { margin-bottom: 14px; }
+        .field label { font-size: 0.75rem; font-weight: 700; color: #aaa; display: block; margin-bottom: 7px; }
+        .field-wrap { position: relative; }
+        .field-icon { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); font-size: 0.95rem; opacity: 0.35; pointer-events: none; }
+        .field input { width: 100%; height: 46px; background: rgba(255,255,255,0.04); border: 1px solid var(--border); color: white; padding: 0 42px 0 14px; border-radius: 11px; font-family: 'Cairo', sans-serif; font-size: 0.9rem; direction: ltr; text-align: right; transition: border-color 0.2s, box-shadow 0.2s; }
+        .field input::placeholder { color: #2a2a2a; direction: rtl; }
+        .field input:focus { outline: none; border-color: var(--red); background: rgba(239,35,60,0.03); box-shadow: 0 0 0 3px rgba(239,35,60,0.08); }
+        .toggle-eye { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.82rem; font-family: 'Cairo', sans-serif; transition: color 0.2s; }
+        .toggle-eye:hover { color: white; }
+        .login-btn { width: 100%; height: 48px; background: var(--red); border: none; color: white; font-family: 'Cairo', sans-serif; font-size: 0.95rem; font-weight: 700; border-radius: 11px; cursor: pointer; margin-top: 6px; position: relative; overflow: hidden; transition: all 0.25s; box-shadow: 0 4px 20px var(--red-glow); }
+        .login-btn:hover { transform: translateY(-1px); box-shadow: 0 8px 28px var(--red-glow); }
+        .login-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+        .err-box { background: rgba(239,35,60,0.08); border: 1px solid rgba(239,35,60,0.25); color: #f87171; border-radius: 10px; padding: 11px 14px; font-size: 0.82rem; margin-bottom: 14px; display: none; line-height: 1.5; }
+        .ok-box { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); color: var(--green); border-radius: 10px; padding: 11px 14px; font-size: 0.82rem; margin-bottom: 14px; display: none; }
+        .security-note { margin-top: 22px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); font-size: 0.72rem; color: #333; text-align: center; line-height: 1.6; }
+        .security-note span { color: rgba(239,35,60,0.4); }
+        .spinner-inline { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-left: 6px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        body.blurred .login-card { filter: blur(8px); }
+    </style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="login-card">
+    <div class="logo-wrap">
+        <div class="logo-box">أ</div>
+        <div>
+            <span class="logo-text-main">الأول للاستثمار</span>
+            <span class="logo-text-sub">SAB INVEST</span>
+        </div>
+        <span class="admin-badge">ADMIN</span>
+    </div>
+    <h1 class="login-title">لوحة الإدارة</h1>
+    <p class="login-sub">هذه الصفحة مخصصة لمديري النظام فقط.<br>الوصول غير المصرح محظور ومراقب.</p>
+    <div class="err-box" id="errBox"></div>
+    <div class="ok-box" id="okBox"></div>
+    <form id="adminForm" novalidate>
+        <div class="field">
+            <label for="adminEmail">البريد الإلكتروني للمدير</label>
+            <div class="field-wrap">
+                <span class="field-icon">✉️</span>
+                <input type="email" id="adminEmail" placeholder="admin@sab-invest.com" autocomplete="username" required>
+            </div>
+        </div>
+        <div class="field">
+            <label for="adminPassword">كلمة المرور</label>
+            <div class="field-wrap">
+                <span class="field-icon">🔑</span>
+                <input type="password" id="adminPassword" placeholder="••••••••••" autocomplete="current-password" required>
+                <button type="button" class="toggle-eye" id="eyeBtn">إظهار</button>
+            </div>
+        </div>
+        <button type="submit" class="login-btn" id="loginBtn">دخول لوحة الإدارة</button>
+    </form>
+    <div class="security-note">
+        <span>🔒</span> جلسة مشفرة — يتم تسجيل جميع عمليات الدخول<br>
+        غير مرتبط بالموقع الرئيسي للعملاء
+    </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCteGTg7qhLBaoRENJEe0RMiC2yBCkyCVw",
+    authDomain: "sab-invest-crm.firebaseapp.com",
+    projectId: "sab-invest-crm",
+    storageBucket: "sab-invest-crm.firebasestorage.app",
+    messagingSenderId: "432529165888",
+    appId: "1:432529165928:web:0a4772c3330fb2fcd675dd"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+async function checkAdminRole(uid) {
+    try {
+        const adminSnap = await getDoc(doc(db, "admins", uid));
+        if (adminSnap.exists()) return true;
+        const userSnap = await getDoc(doc(db, "users", uid));
+        if (userSnap.exists()) {
+            const data = userSnap.data();
+            return data.role === 'admin' || data.role === 'superadmin';
+        }
+        return false;
+    } catch(e) { return false; }
+}
+
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const isAdmin = await checkAdminRole(user.uid);
+        if (isAdmin) { window.location.href = 'crm.html'; }
+        else { await auth.signOut(); }
+    }
+});
+
+document.getElementById('eyeBtn').addEventListener('click', function() {
+    const inp = document.getElementById('adminPassword');
+    const shown = inp.type === 'text';
+    inp.type = shown ? 'password' : 'text';
+    this.textContent = shown ? 'إظهار' : 'إخفاء';
+});
+
+document.getElementById('adminForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+    const password = document.getElementById('adminPassword').value;
+    const errBox = document.getElementById('errBox');
+    const okBox = document.getElementById('okBox');
+    const btn = document.getElementById('loginBtn');
+
+    errBox.style.display = 'none';
+    okBox.style.display = 'none';
+
+    if (!email || !password) {
+        errBox.textContent = 'يرجى إدخال البريد الإلكتروني وكلمة المرور';
+        errBox.style.display = 'block'; return;
+    }
+
+    btn.innerHTML = '<span class="spinner-inline"></span> جاري التحقق...';
+    btn.disabled = true;
+
+    try {
+        const cred = await signInWithEmailAndPassword(auth, email, password);
+        const isAdmin = await checkAdminRole(cred.user.uid);
+
+        if (!isAdmin) {
+            await auth.signOut();
+            errBox.textContent = '⛔ هذا الحساب لا يملك صلاحيات الإدارة.';
+            errBox.style.display = 'block';
+            btn.innerHTML = 'دخول لوحة الإدارة';
+            btn.disabled = false;
+            return;
+        }
+
+        localStorage.setItem('admin_uid', cred.user.uid);
+        localStorage.setItem('admin_logged_in', 'true');
+        okBox.textContent = '✅ تم التحقق بنجاح... جاري التوجيه';
+        okBox.style.display = 'block';
+        setTimeout(() => { window.location.href = 'crm.html'; }, 800);
+
+    } catch (err) {
+        btn.innerHTML = 'دخول لوحة الإدارة';
+        btn.disabled = false;
+        let msg = '❌ البيانات غير صحيحة';
+        if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') msg = '❌ كلمة المرور غير صحيحة';
+        else if (err.code === 'auth/user-not-found') msg = '❌ البريد الإلكتروني غير مسجل';
+        else if (err.code === 'auth/too-many-requests') msg = '⚠️ تم تجاوز عدد المحاولات. حاول مجدداً بعد قليل';
+        errBox.textContent = msg;
+        errBox.style.display = 'block';
+    }
+});
+
+document.addEventListener('visibilitychange', () => {
+    document.body.classList.toggle('blurred', document.hidden);
+});
+</script>
+</body>
+</html>

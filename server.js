@@ -4,13 +4,40 @@ const cors    = require('cors');
 const http    = require('http');
 const WebSocket = require('ws');
 
+
 const app  = express();
 const PORT = process.env.PORT || 3000;
 
 // ══ Finnhub API Key ══
 const FH_KEY = process.env.FINNHUB_KEY || 'd7tjtkhr01qlbd3kf4dgd7tjtkhr01qlbd3kf4e0';
 
-app.use(cors());
+// CORS for separated deployment:
+// Frontend can be hosted on Netlify, backend stays on Render.
+// Add your exact Netlify URL in Render env variable FRONTEND_URLS if you want.
+// Example: FRONTEND_URLS=https://your-site.netlify.app,http://localhost:3000
+const allowedOrigins = (process.env.FRONTEND_URLS || process.env.FRONTEND_URL || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+
+function isAllowedOrigin(origin) {
+  if (!origin) return true; // allow server-to-server, curl, Postman
+  if (allowedOrigins.includes(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.netlify\.app$/i.test(origin)) return true;
+  if (/^https:\/\/[a-z0-9-]+\.netlify\.com$/i.test(origin)) return true;
+  if (/^http:\/\/localhost:\d+$/i.test(origin)) return true;
+  if (/^http:\/\/127\.0\.0\.1:\d+$/i.test(origin)) return true;
+  return false;
+}
+
+app.use(cors({
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) return callback(null, true);
+    return callback(new Error('Not allowed by CORS: ' + origin));
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(express.static('public'));
 // ══════════════════════════════════════════════════
@@ -159,7 +186,15 @@ setInterval(refreshAll, 15000);
 app.use(express.static('public'));
 
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/dashboard.html');
+  res.json({
+    ok: true,
+    service: 'SAB Invest backend',
+    endpoints: ['/health', '/prices', '/price?symbol=TVC:GOLD', '/batch?symbols=NASDAQ:AAPL,TVC:GOLD', '/ws']
+  });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ ok: true, uptime: process.uptime(), ts: Date.now() });
 });
 // ══════════════════════════════════════════════════
 // GET /prices — all symbols at once
@@ -272,5 +307,7 @@ wss.on('connection', (clientWS) => {
 server.listen(PORT, () => {
   console.log(`✅ SAB Invest (Finnhub) running on port ${PORT}`);
   console.log(`📊 ${ALL_TV.length} symbols tracked`);
-  console.log(`🔌 WebSocket available at ws://localhost:${PORT}/ws`);
+  console.log(`🔌 WebSocket available at /ws`);
+  console.log(`🌐 Allowed frontend origins: ${allowedOrigins.length ? allowedOrigins.join(', ') : 'localhost + *.netlify.app'}`);
 });
+

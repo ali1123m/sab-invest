@@ -1409,10 +1409,28 @@ function updateInstRow(inst, prevBuy){
 
 const livePriceCache = {};
 
+// Prevent previous client's cached header/profile from appearing after switching accounts.
+(function preventStaleClientHeader(){
+    const currentUid = sessionStorage.getItem('userId') || sessionStorage.getItem('customerNumber') || '';
+    const lastUid = localStorage.getItem('last_dashboard_user_id') || '';
+    if (currentUid && lastUid && currentUid !== lastUid) {
+        ['currentUser','loggedInUser','userData','customer','customerId','activeUserId'].forEach(k => localStorage.removeItem(k));
+        Object.keys(localStorage).forEach(k => {
+            if (k.startsWith('u_' + lastUid + '_')) localStorage.removeItem(k);
+        });
+    }
+    if (currentUid) localStorage.setItem('last_dashboard_user_id', currentUid);
+})();
+
+
 // ── API KEYS (free tiers — replace with your own if needed) ──
 // Polygon.io  : free key — 15-min delayed for stocks, real-time websocket
 // Sign up at https://polygon.io (free plan: Starter)
-const PRICE_SERVER  = 'https://sab-invest-server.onrender.com';
+// Backend URL:
+ // - On Netlify, keep this as your Render backend URL.
+ // - If you rename your Render service, change only this line.
+const PRICE_SERVER  = window.SAB_BACKEND_URL || 'https://sab-invest-server.onrender.com';
+const PRICE_WS_SERVER = PRICE_SERVER.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
 const FH_KEY        = 'd7tjtkhr01qlbd3kf4dgd7tjtkhr01qlbd3kf4e0';
 const POLYGON_KEY   = 'r5qrZp3tzCPH_csmyAP5gquyc6iWvQOp';
 
