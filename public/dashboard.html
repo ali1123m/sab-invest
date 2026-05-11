@@ -853,7 +853,7 @@ if(_userId){
           saveArr('futureOrders',futureOrders);
           if(typeof renderAllTabs==='function')renderAllTabs();
           if(typeof updateAccountDisplay==='function')updateAccountDisplay();
-          showToast('🗑️ تم حذف صفقة بواسطة الإدارة','#f59e0b');
+          // No client notification for admin deleting/editing trades. UI syncs silently.
         }
         return;
       }
@@ -892,7 +892,7 @@ if(_userId){
               if(changed){
                 saveArr('closedPositions',closedPositions);
                 if(typeof renderAllTabs==='function')renderAllTabs();
-                showToast('✏️ تم تحديث الصفقة المغلقة بواسطة الإدارة','#f59e0b');
+                // Silent CRM sync: closed trade fields updated without client notification.
               }
             }else if(fbTrade.source==='crm'){
               const openTime=fmtFbTs(fbTrade.openedAt)||fmtTime();
@@ -923,7 +923,7 @@ if(_userId){
             if(changed){
               saveArr('openPositions',openPositions);
               if(typeof renderAllTabs==='function')renderAllTabs();
-              showToast('✏️ تم تعديل صفقة '+pos.symbol+' بواسطة الإدارة','#f59e0b');
+              // Silent CRM sync: open trade edited without client notification.
             }
           }
         }
@@ -940,7 +940,7 @@ if(_userId){
           if(typeof startPnlTimer==='function')startPnlTimer(newPos);
           if(typeof renderAllTabs==='function')renderAllTabs();
           if(typeof updateAccountDisplay==='function')updateAccountDisplay();
-          showToast('📈 تمت إضافة صفقة '+newPos.symbol+' '+(newPos.type==='buy'?'شراء':'بيع')+' بواسطة الإدارة','#00c896');
+          // Silent CRM sync: new admin trade added without client notification.
         }
         if(!alreadyLocal&&fbTrade.status==='closed'){
           const newClosed={id:Date.now()+Math.random(),_fbRef:fbId,symbol:fbTrade.symbol||'—',type:(fbTrade.direction||'BUY').toLowerCase(),lots:Number(fbTrade.lots)||0.01,openPrice:Number(fbTrade.openPrice)||0,closePrice:Number(fbTrade.closePrice)||0,sl:fbTrade.sl||'—',tp:fbTrade.tp||'—',pnl:Number(fbTrade.pl)||0,openTime:fmtFbTs(fbTrade.openedAt)||fmtTime(),closeTime:fmtFbTs(fbTrade.closedAt)||fmtTime(),status:'closed',closeReason:'crm'};
