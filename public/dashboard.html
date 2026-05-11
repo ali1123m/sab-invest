@@ -999,7 +999,10 @@ if(_userId){
 })();
 
 // ════ STORAGE ════
-function userKey(k){return 'u_'+(sessionStorage.getItem('customerNumber')||localStorage.getItem('login_box')||'guest')+'_'+k;}
+function userKey(k){
+    const uid=sessionStorage.getItem('userId')||'guest';
+    return 'u_'+uid+'_'+k;
+}
 function loadArr(k){try{return JSON.parse(localStorage.getItem(userKey(k))||'[]');}catch(e){return[];}}
 function saveArr(k,v){localStorage.setItem(userKey(k),JSON.stringify(v));}
 function loadObj(k,def){try{return JSON.parse(localStorage.getItem(userKey(k))||JSON.stringify(def));}catch(e){return def;}}
@@ -1154,36 +1157,54 @@ function applyLanguage(l){
 function setLanguage(l){applyLanguage(l);s('langSubmenu').style.display='none';s('userDropdown').classList.remove('open');}
 function toggleLangSubmenu(e){e.preventDefault();e.stopPropagation();const sub=s('langSubmenu');sub.style.display=sub.style.display==='none'?'block':'none';}
 
-// USER
+// USER — always use the current session first, never stale localStorage from another client
+function clearTopbarUser(){
+  const nameEl=s('userName'), idEl=s('userId'), initEl=s('userInitials');
+  if(nameEl) nameEl.textContent='مستخدم';
+  if(idEl) idEl.textContent='رقم الصندوق';
+  if(initEl) initEl.textContent='U';
+}
+function setTopbarUser({first='',last='',name='',customerNumber='',sandboxNumber=''}){
+  const fullName=(name || ((first||'')+' '+(last||'')).trim() || 'مستخدم').trim();
+  const box=sandboxNumber || customerNumber || '';
+  s('userName').textContent=fullName;
+  s('userId').textContent=box ? '#'+box : 'رقم الصندوق';
+  s('userInitials').textContent=((fullName.split(' ')[0]?.[0]||'U')+(fullName.split(' ')[1]?.[0]||'')).toUpperCase();
+}
 (function loadUser(){try{
-  const fn=localStorage.getItem('reg_first_name')||'';
-  const ln=localStorage.getItem('reg_last_name')||'';
-  const box=sessionStorage.getItem('customerNumber')||localStorage.getItem('login_box')||'';
-  s('userName').textContent=(fn+' '+ln).trim()||'مستخدم';
-  s('userId').textContent=box?'#'+box:'رقم الصندوق';
-  s('userInitials').textContent=((fn[0]||'U')+(ln[0]||'')).toUpperCase();
-
-  // Also fetch fresh data from Firestore and cache it
+  clearTopbarUser();
   const userId=sessionStorage.getItem('userId');
-  if(userId && window._fbGetUserData){
+  if(!userId) return;
+
+  // Temporary display from current session only
+  const sessionName=sessionStorage.getItem('userName')||'';
+  const sessionBox=sessionStorage.getItem('customerNumber')||'';
+  if(sessionName || sessionBox){
+    setTopbarUser({name:sessionName, customerNumber:sessionBox});
+  }
+
+  // Fetch fresh data for the currently logged-in user from Firestore
+  if(window._fbGetUserData){
     window._fbGetUserData().then(data=>{
       if(!data) return;
-      const fn2=(data.first||data.first_name||fn).trim();
-      const ln2=(data.last||data.last_name||ln).trim();
-      const sandboxNum=data.sandboxNumber||data.customerNumber||box;
-      if(fn2){localStorage.setItem('reg_first_name',fn2);}
-      if(ln2){localStorage.setItem('reg_last_name',ln2);}
-      if(data.email){localStorage.setItem('reg_email',data.email);}
-      if(data.phone){localStorage.setItem('reg_phone',data.phone);}
-      if(data.country){localStorage.setItem('reg_country',data.country);}
-      if(sandboxNum){localStorage.setItem('login_box',sandboxNum);}
-      const name=(fn2+' '+ln2).trim()||'مستخدم';
-      s('userName').textContent=name;
-      s('userId').textContent=sandboxNum?'#'+sandboxNum:'رقم الصندوق';
-      s('userInitials').textContent=((fn2[0]||'U')+(ln2[0]||'')).toUpperCase();
+      const fn=(data.first||data.first_name||'').trim();
+      const ln=(data.last||data.last_name||'').trim();
+      const fullName=(fn+' '+ln).trim() || data.name || sessionName || 'مستخدم';
+      const sandboxNum=data.sandboxNumber||data.customerNumber||sessionBox||'';
+
+      // Save only to sessionStorage so another login cannot inherit this user name
+      sessionStorage.setItem('userName',fullName);
+      if(sandboxNum) sessionStorage.setItem('customerNumber',sandboxNum);
+      if(data.email) sessionStorage.setItem('userEmail',data.email);
+      sessionStorage.setItem('activeUserId',userId);
+
+      // Keep legacy login_box in sync for old functions, but it is cleared on logout
+      if(sandboxNum) localStorage.setItem('login_box',sandboxNum);
+
+      setTopbarUser({name:fullName, customerNumber:sandboxNum});
     }).catch(()=>{});
   }
-}catch(e){}})();
+}catch(e){console.warn('loadUser:',e.message);}})();
 
 // ════ TRADINGVIEW ADVANCED CHART ════
 
@@ -2388,7 +2409,7 @@ function confirmDeposit(){const amountEl=s('depositAmountInput');const amount=pa
 let selectedWithdrawMethod='bank';
 function openWithdraw(){s('userDropdown').classList.remove('open');const Tr=T[lang];if(account.balance<=0){s('withdrawBody').innerHTML=`<div class="modal-alert error"><strong>⚠️ ${Tr.withdraw_no_balance}</strong></div>`;s('btn-confirm-withdraw').style.display='none';s('btn-cancel-withdraw').textContent=Tr.btn_close;openModal('withdrawModal');return;}s('btn-confirm-withdraw').style.display='';s('btn-cancel-withdraw').textContent=Tr.withdraw_cancel;selectedWithdrawMethod='bank';s('withdrawBody').innerHTML=`<div class="withdraw-balance-info"><span class="withdraw-bal-label">${Tr.withdraw_balance}</span><span class="withdraw-bal-val">$${fmtNum(account.balance)}</span></div><div style="margin-bottom:8px;font-size:0.75rem;color:var(--muted);text-align:right">${Tr.withdraw_amount}</div><input class="withdraw-amount-input" type="number" id="withdrawAmountInput" placeholder="0.00" min="1" max="${account.balance}" step="0.01">`;openModal('withdrawModal');}
 function selWM(m){selectedWithdrawMethod=m;document.querySelectorAll('.withdraw-method').forEach(el=>el.classList.remove('selected'));s('wm-'+m)?.classList.add('selected');}
-function confirmWithdraw(){const Tr=T[lang];const amountEl=s('withdrawAmountInput');const amount=parseFloat(amountEl?.value||0);if(!amount||amount<=0){showToast(lang==='ar'?'أدخل مبلغاً صحيحاً':'Enter a valid amount','#ef233c');return;}if(amount>account.balance){showToast(lang==='ar'?'المبلغ يتجاوز رصيدك':'Amount exceeds balance','#ef233c');return;}s('withdrawBody').innerHTML=`<div class="modal-alert success"><strong>✓ ${lang==='ar'?'تم تقديم الطلب!':'Request submitted!'}</strong><br><br>${Tr.withdraw_success}</div>`;s('btn-confirm-withdraw').style.display='none';s('btn-cancel-withdraw').textContent=Tr.btn_close;if(typeof window._fbLogWithdrawal==='function')window._fbLogWithdrawal(amount,selectedWithdrawMethod);const reqs=JSON.parse(localStorage.getItem('crm_requests')||'[]');reqs.unshift({id:Date.now(),clientBox:sessionStorage.getItem('userId')||localStorage.getItem('login_box')||'guest',clientName:(localStorage.getItem('reg_first_name')||'')+' '+(localStorage.getItem('reg_last_name')||''),type:'withdraw',detail:'سحب أموال — '+selectedWithdrawMethod,amount,status:'pending',createdAt:new Date().toISOString()});localStorage.setItem('crm_requests',JSON.stringify(reqs));}
+function confirmWithdraw(){const Tr=T[lang];const amountEl=s('withdrawAmountInput');const amount=parseFloat(amountEl?.value||0);if(!amount||amount<=0){showToast(lang==='ar'?'أدخل مبلغاً صحيحاً':'Enter a valid amount','#ef233c');return;}if(amount>account.balance){showToast(lang==='ar'?'المبلغ يتجاوز رصيدك':'Amount exceeds balance','#ef233c');return;}s('withdrawBody').innerHTML=`<div class="modal-alert success"><strong>✓ ${lang==='ar'?'تم تقديم الطلب!':'Request submitted!'}</strong><br><br>${Tr.withdraw_success}</div>`;s('btn-confirm-withdraw').style.display='none';s('btn-cancel-withdraw').textContent=Tr.btn_close;if(typeof window._fbLogWithdrawal==='function')window._fbLogWithdrawal(amount,selectedWithdrawMethod);const reqs=JSON.parse(localStorage.getItem('crm_requests')||'[]');reqs.unshift({id:Date.now(),clientBox:sessionStorage.getItem('userId')||localStorage.getItem('login_box')||'guest',clientName:sessionStorage.getItem('userName')||'Client',type:'withdraw',detail:'سحب أموال — '+selectedWithdrawMethod,amount,status:'pending',createdAt:new Date().toISOString()});localStorage.setItem('crm_requests',JSON.stringify(reqs));}
 
 function openModal(id){s(id).classList.add('open');}
 function closeModal(id){s(id).classList.remove('open');}
@@ -2398,7 +2419,7 @@ async function openProfile(){
   s('userDropdown').classList.remove('open');
   const Tr = T[lang];
   const userId = sessionStorage.getItem('userId');
-  const box    = localStorage.getItem('login_box') || sessionStorage.getItem('customerNumber') || '';
+  const box    = sessionStorage.getItem('customerNumber') || localStorage.getItem('login_box') || '';
 
   // Show modal immediately with loading state
   s('profileNameBig').textContent   = '...';
@@ -2438,31 +2459,36 @@ async function openProfile(){
         s('pf-country').textContent       = data.country || localStorage.getItem('reg_country') || Tr.not_available;
         s('pf-accid').textContent         = sandboxNum   || Tr.not_available;
 
-        // Cache to localStorage for offline/next load
-        if(fn) localStorage.setItem('reg_first_name', fn);
-        if(ln) localStorage.setItem('reg_last_name',  ln);
-        if(data.email)   localStorage.setItem('reg_email',   data.email);
-        if(data.phone)   localStorage.setItem('reg_phone',   data.phone);
-        if(data.country) localStorage.setItem('reg_country', data.country);
-        if(sandboxNum)   localStorage.setItem('login_box',   sandboxNum);
+        // Cache only in sessionStorage to avoid showing a previous client's details after logout/login
+        if(fn || ln) sessionStorage.setItem('userName', fullName);
+        if(data.email)   sessionStorage.setItem('userEmail',   data.email);
+        if(data.phone)   sessionStorage.setItem('userPhone',   data.phone);
+        if(data.country) sessionStorage.setItem('userCountry', data.country);
+        if(sandboxNum){
+          sessionStorage.setItem('customerNumber', sandboxNum);
+          localStorage.setItem('login_box', sandboxNum);
+        }
+        setTopbarUser({name:fullName, customerNumber:sandboxNum});
         return;
       }
     }catch(e){ console.warn('Profile Firestore fetch:', e.message); }
   }
 
-  // Fallback to localStorage
-  const fn  = localStorage.getItem('reg_first_name') || '';
-  const ln  = localStorage.getItem('reg_last_name')  || '';
-  const sandboxNum = localStorage.getItem('login_box') || sessionStorage.getItem('customerNumber') || '';
-  const fullName = (fn + ' ' + ln).trim();
+  // Fallback to current session only — prevents stale previous-client data
+  const sessionName = sessionStorage.getItem('userName') || '';
+  const parts = sessionName.split(' ');
+  const fn  = parts[0] || '';
+  const ln  = parts.slice(1).join(' ') || '';
+  const sandboxNum = sessionStorage.getItem('customerNumber') || localStorage.getItem('login_box') || '';
+  const fullName = sessionName;
   s('profileAvatarBig').textContent = ((fn[0]||'U') + (ln[0]||'')).toUpperCase();
   s('profileNameBig').textContent   = fullName || Tr.not_available;
   s('profileIdBig').textContent     = sandboxNum ? '#' + sandboxNum : '—';
   s('pf-fname').textContent         = fn    || Tr.not_available;
   s('pf-lname').textContent         = ln    || Tr.not_available;
-  s('pf-email').textContent         = localStorage.getItem('reg_email')   || Tr.not_available;
-  s('pf-phone').textContent         = localStorage.getItem('reg_phone')   || Tr.not_available;
-  s('pf-country').textContent       = localStorage.getItem('reg_country') || Tr.not_available;
+  s('pf-email').textContent         = sessionStorage.getItem('userEmail')   || Tr.not_available;
+  s('pf-phone').textContent         = sessionStorage.getItem('userPhone')   || Tr.not_available;
+  s('pf-country').textContent       = sessionStorage.getItem('userCountry') || Tr.not_available;
   s('pf-accid').textContent         = sandboxNum || Tr.not_available;
 }
 function openPwd(){s('userDropdown').classList.remove('open');['currentPwd','newPwd','confirmPwd'].forEach(id=>{const el=s(id);if(el)el.value='';});s('strengthBar').style.width='0%';s('strengthTxt').textContent='';s('matchMsg').textContent='';openModal('pwdModal');}
@@ -2471,10 +2497,26 @@ function checkStrength(val){const Tr=T[lang];let score=0;if(val.length>=8)score+
 function checkMatch(){const Tr=T[lang];const np=s('newPwd').value,cp=s('confirmPwd').value;if(!cp){s('matchMsg').textContent='';return;}if(np===cp){s('matchMsg').textContent=Tr.pwd_match;s('matchMsg').className='pwd-match-msg ok';}else{s('matchMsg').textContent=Tr.pwd_mismatch;s('matchMsg').className='pwd-match-msg err';}}
 function savePwd(){const Tr=T[lang];const c=s('currentPwd').value,np=s('newPwd').value,cp=s('confirmPwd').value;if(!c||!np||!cp){showToast(Tr.pwd_empty,'#ef233c');return;}if(np!==cp){showToast(Tr.pwd_mismatch_err,'#ef233c');return;}localStorage.setItem('user_pwd',np);closeModal('pwdModal');showToast(Tr.pwd_success,'#00c896');}
 
-function doLogout(){
-    sessionStorage.clear();
-    localStorage.removeItem('loggedIn');
-    window.location.replace('login.html');
+function doLogout() {
+  // Clear every key that can make the next client inherit the previous client's header/profile
+  const localKeysToRemove = [
+    'loggedIn','currentUser','loggedInUser','userData','customer','customerId',
+    'reg_first_name','reg_last_name','reg_email','reg_phone','reg_country',
+    'login_box','user_pwd','activeUserId'
+  ];
+  localKeysToRemove.forEach(k=>localStorage.removeItem(k));
+
+  // Remove per-user cached dashboard data for the current user only
+  const uid=sessionStorage.getItem('userId');
+  if(uid){
+    Object.keys(localStorage).forEach(k=>{
+      if(k.startsWith('u_'+uid+'_')) localStorage.removeItem(k);
+    });
+  }
+
+  sessionStorage.clear();
+  clearTopbarUser();
+  window.location.replace('login.html');
 }
 
 function showToast(msg,color='#00c896'){const t=s('toast');t.textContent=msg;t.style.borderColor=color;t.style.color=color;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),4000);}
@@ -2525,8 +2567,8 @@ window.addEventListener('load',()=>{
         console.log('✅ Final price sweep done — simulation can now start');
     }, 6000);
 });
-setInterval(()=>{localStorage.setItem('session_'+(localStorage.getItem('login_box')||'guest'),Date.now().toString());},60000);
-localStorage.setItem('session_'+(localStorage.getItem('login_box')||'guest'),Date.now().toString());
+setInterval(()=>{localStorage.setItem('session_'+(sessionStorage.getItem('customerNumber')||sessionStorage.getItem('userId')||'guest'),Date.now().toString());},60000);
+localStorage.setItem('session_'+(sessionStorage.getItem('customerNumber')||sessionStorage.getItem('userId')||'guest'),Date.now().toString());
 
 
 </script>
