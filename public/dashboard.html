@@ -394,7 +394,271 @@
             .tradingview-wrap{height:240px !important;}
             .trades-bar{max-height:250px;}
         }
-    </style>
+    
+
+/* ═════════════════════════════════════════════════════
+   MOBILE DASHBOARD ORDER — does not affect desktop
+   Desired mobile order:
+   1) User name / account number
+   2) Chart
+   3) Prices / markets
+   4) Buy / Sell form
+   5) Trades / activity
+═════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    body{
+        background: var(--bg);
+        overflow-x: hidden !important;
+    }
+
+    .topbar{
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .account-metrics{
+        display: none !important;
+    }
+
+    .user-area{
+        margin-right: auto;
+        flex-shrink: 0;
+    }
+
+    .user-btn{
+        padding: 5px 10px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.04);
+    }
+
+    .main-layout{
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        overflow: visible !important;
+        gap: 0;
+    }
+
+    .mobile-user-card{
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 10px 14px;
+        background: var(--bg2);
+        border-bottom: 1px solid var(--border);
+        order: 0;
+    }
+
+    .mobile-user-card .mobile-user-main{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    .mobile-user-card .mobile-user-avatar{
+        width: 34px;
+        height: 34px;
+        border-radius: 11px;
+        background: var(--red);
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 900;
+        flex-shrink: 0;
+    }
+
+    .mobile-user-card .mobile-user-name{
+        font-size: 0.88rem;
+        font-weight: 800;
+        color: #fff;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 190px;
+    }
+
+    .mobile-user-card .mobile-user-id{
+        font-size: 0.72rem;
+        color: var(--muted);
+        font-family: var(--mono);
+        direction: ltr;
+        text-align: left;
+    }
+
+    .mobile-user-card .mobile-live-pill{
+        font-size: 0.68rem;
+        color: var(--green);
+        background: rgba(0,200,150,0.08);
+        border: 1px solid rgba(0,200,150,0.25);
+        border-radius: 999px;
+        padding: 4px 9px;
+        white-space: nowrap;
+        font-weight: 700;
+    }
+
+    .chart-panel{
+        order: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        background: var(--bg);
+    }
+
+    .chart-toolbar{
+        order: 1;
+        min-height: 42px;
+        height: auto;
+        padding: 7px 10px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .tradingview-wrap{
+        order: 2;
+        height: 300px !important;
+        min-height: 300px !important;
+        max-height: 300px !important;
+        flex: none !important;
+        border-bottom: 1px solid var(--border);
+        background: #050505;
+    }
+
+    .markets-panel{
+        order: 2 !important;
+        display: flex !important;
+        height: auto !important;
+        max-height: none !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        border-left: none !important;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        background: var(--bg2);
+    }
+
+    .markets-panel .panel-header{
+        padding: 12px 14px 8px;
+    }
+
+    .category-tabs{
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        padding-bottom: 9px;
+    }
+
+    .cat-tab{
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    .table-body{
+        max-height: 310px !important;
+        min-height: 210px !important;
+        overflow-y: auto !important;
+    }
+
+    .instrument-row,
+    .table-head{
+        grid-template-columns: minmax(115px, 1fr) 74px 74px 58px;
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+    .info-panel{
+        display: none !important;
+    }
+
+    #orderFormWrap.mobile-order-form{
+        order: 3 !important;
+        display: flex !important;
+        width: 100%;
+        background: var(--bg2);
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 10px;
+    }
+
+    #orderFormWrap.mobile-order-form::before{
+        content: "شراء / بيع";
+        display: block;
+        padding: 12px 14px 4px;
+        color: #fff;
+        font-size: 0.82rem;
+        font-weight: 800;
+        border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .price-row{
+        border-top: none;
+    }
+
+    .submit-buy-btn{
+        height: 52px;
+        border-radius: 12px;
+        font-size: 0.92rem;
+    }
+
+    .trades-bar.mobile-trades-bar{
+        order: 4 !important;
+        display: flex !important;
+        width: 100%;
+        height: auto !important;
+        min-height: 260px;
+        max-height: none !important;
+        overflow: visible !important;
+        border-top: 1px solid var(--border);
+        background: var(--bg2);
+    }
+
+    .trades-tabs{
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        background: var(--bg2);
+        position: sticky;
+        top: 50px;
+        z-index: 40;
+    }
+
+    .trades-tab{
+        flex-shrink: 0;
+        font-size: 0.72rem;
+        padding: 8px 12px;
+    }
+
+    .pos-scroll{
+        max-height: 320px;
+        overflow: auto !important;
+    }
+
+    .pos-head,
+    .pos-row{
+        min-width: 720px;
+    }
+
+    .modal{
+        width: calc(100% - 16px);
+        max-width: calc(100% - 16px);
+        max-height: 92vh;
+        border-radius: 16px;
+    }
+}
+
+@media (min-width: 769px) {
+    .mobile-user-card{
+        display: none !important;
+    }
+}
+</style>
 </head>
 <body>
 
@@ -2589,6 +2853,114 @@ setInterval(()=>{localStorage.setItem('session_'+(sessionStorage.getItem('custom
 localStorage.setItem('session_'+(sessionStorage.getItem('customerNumber')||sessionStorage.getItem('userId')||'guest'),Date.now().toString());
 
 
+</script>
+
+
+<script>
+/* Mobile-only DOM ordering. Desktop is restored automatically. */
+(function () {
+    const MOBILE_MAX = 768;
+    let orderPlaceholder = null;
+    let tradesPlaceholder = null;
+    let mobileUserCard = null;
+
+    function isMobile() {
+        return window.innerWidth <= MOBILE_MAX;
+    }
+
+    function createMobileUserCard() {
+        if (mobileUserCard) return mobileUserCard;
+
+        mobileUserCard = document.createElement('div');
+        mobileUserCard.className = 'mobile-user-card';
+        mobileUserCard.innerHTML = `
+            <div class="mobile-user-main">
+                <div class="mobile-user-avatar" id="mobileUserAvatar">U</div>
+                <div style="min-width:0">
+                    <div class="mobile-user-name" id="mobileUserName">مستخدم</div>
+                    <div class="mobile-user-id" id="mobileUserId">#00000</div>
+                </div>
+            </div>
+            <div class="mobile-live-pill">LIVE</div>
+        `;
+
+        return mobileUserCard;
+    }
+
+    function syncMobileUserCard() {
+        const sourceName = document.getElementById('userName');
+        const sourceId = document.getElementById('userId');
+        const sourceAvatar = document.getElementById('userInitials');
+
+        const mobileName = document.getElementById('mobileUserName');
+        const mobileId = document.getElementById('mobileUserId');
+        const mobileAvatar = document.getElementById('mobileUserAvatar');
+
+        if (mobileName && sourceName) mobileName.textContent = sourceName.textContent || 'مستخدم';
+        if (mobileId && sourceId) mobileId.textContent = sourceId.textContent || '#00000';
+        if (mobileAvatar && sourceAvatar) mobileAvatar.textContent = sourceAvatar.textContent || 'U';
+    }
+
+    function applyMobileLayout() {
+        const main = document.querySelector('.main-layout');
+        const chartPanel = document.querySelector('.chart-panel');
+        const marketsPanel = document.querySelector('.markets-panel');
+        const orderForm = document.getElementById('orderFormWrap');
+        const tradesBar = document.querySelector('.trades-bar');
+
+        if (!main || !chartPanel || !marketsPanel || !orderForm || !tradesBar) return;
+
+        if (isMobile()) {
+            const card = createMobileUserCard();
+            if (!card.parentNode) chartPanel.insertBefore(card, chartPanel.firstChild);
+            syncMobileUserCard();
+
+            if (!orderPlaceholder) {
+                orderPlaceholder = document.createComment('desktop-order-form-position');
+                orderForm.parentNode.insertBefore(orderPlaceholder, orderForm);
+            }
+
+            if (!tradesPlaceholder) {
+                tradesPlaceholder = document.createComment('desktop-trades-bar-position');
+                tradesBar.parentNode.insertBefore(tradesPlaceholder, tradesBar);
+            }
+
+            orderForm.classList.add('mobile-order-form');
+            tradesBar.classList.add('mobile-trades-bar');
+
+            main.insertBefore(orderForm, marketsPanel.nextSibling);
+            main.insertBefore(tradesBar, orderForm.nextSibling);
+        } else {
+            if (mobileUserCard && mobileUserCard.parentNode) {
+                mobileUserCard.parentNode.removeChild(mobileUserCard);
+            }
+
+            orderForm.classList.remove('mobile-order-form');
+            tradesBar.classList.remove('mobile-trades-bar');
+
+            if (orderPlaceholder && orderPlaceholder.parentNode) {
+                orderPlaceholder.parentNode.insertBefore(orderForm, orderPlaceholder);
+            }
+            if (tradesPlaceholder && tradesPlaceholder.parentNode) {
+                tradesPlaceholder.parentNode.insertBefore(tradesBar, tradesPlaceholder);
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        applyMobileLayout();
+
+        const sourceName = document.getElementById('userName');
+        const sourceId = document.getElementById('userId');
+        const sourceAvatar = document.getElementById('userInitials');
+        [sourceName, sourceId, sourceAvatar].filter(Boolean).forEach(el => {
+            new MutationObserver(syncMobileUserCard).observe(el, { childList: true, characterData: true, subtree: true });
+        });
+    });
+
+    window.addEventListener('resize', applyMobileLayout);
+    window.addEventListener('orientationchange', () => setTimeout(applyMobileLayout, 250));
+})();
 </script>
 </body>
 </html>
