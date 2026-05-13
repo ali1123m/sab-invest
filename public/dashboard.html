@@ -658,6 +658,57 @@
         display: none !important;
     }
 }
+
+
+        /* ══ MOBILE FIX: user dropdown menu must not be cut off ══ */
+        @media(max-width:768px){
+            .topbar{
+                overflow: visible !important;
+                z-index: 3000 !important;
+            }
+
+            .user-area{
+                position: static !important;
+                z-index: 4000 !important;
+            }
+
+            .user-dropdown{
+                position: fixed !important;
+                top: 86px !important;
+                left: 12px !important;
+                right: 12px !important;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: calc(100vw - 24px) !important;
+                max-height: calc(100vh - 110px) !important;
+                overflow-y: auto !important;
+                overflow-x: hidden !important;
+                padding: 8px !important;
+                border-radius: 18px !important;
+                direction: rtl !important;
+                z-index: 99999 !important;
+                box-shadow: 0 24px 80px rgba(0,0,0,0.85) !important;
+            }
+
+            .user-dropdown a{
+                width: 100% !important;
+                justify-content: flex-start !important;
+                padding: 13px 14px !important;
+                font-size: 0.95rem !important;
+                white-space: nowrap !important;
+            }
+
+            .user-dropdown .drop-icon{
+                flex-shrink: 0 !important;
+                width: 28px !important;
+                text-align: center !important;
+            }
+
+            #langSubmenu{
+                width: 100% !important;
+            }
+        }
+
 </style>
 </head>
 <body>
