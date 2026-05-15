@@ -1588,13 +1588,7 @@ function updateSymbol(symbol,displayName,fullName,buyPrice,sellPrice){
     initChart(symbol,currentTF);
     document.querySelectorAll('.instrument-row').forEach(r=>r.classList.remove('selected'));
     const row=document.querySelector('[data-symbol="'+symbol+'"]');if(row)row.classList.add('selected');
-    // Immediately fetch real price for new symbol + restart poller
-    fetchTVQuoteSingle(symbol);
-    if(typeof initFocusedTwelveWS === 'function'){
-        initFocusedTwelveWS();
-        fetchTwelveFocusedSnapshot();
-    }
-    startTVQuotePoller();
+    // SSE stream updates prices automatically — just recalc order form
     updateOrderCalc();
 }
 
@@ -1711,144 +1705,115 @@ function updateInstRow(inst, prevBuy){
 }
 
 // ════════════════════════════════════════════════════════════════
-// LIVE PRICE ENGINE
-// Sources (priority order):
-//  1. Polygon.io WebSocket  — stocks & indices (real-time, free key)
-//  2. Alpha Vantage REST    — forex & commodities (free key, 25 req/day)
-//  3. Binance WebSocket     — crypto (no key needed, real-time)
-//  4. Frankfurter REST      — forex fallback (free, no key)
-//  5. Yahoo Finance proxy   — stocks/commodities fallback
-//  6. TradingView Scanner   — universal fallback batch
-//  7. Simulation            — last resort gap-filler
+// ════════════════════════════════════════════════════════════════
+// LIVE PRICE ENGINE — Twelve Data via Server-Sent Events (SSE)
+// All prices come from: https://sab-invest-server.onrender.com/stream
+// The server holds ONE WebSocket to Twelve Data and fans out to all clients.
+// No API keys needed in the browser. No CORS issues. Works on Netlify.
 // ════════════════════════════════════════════════════════════════
 
+const PRICE_SERVER = 'https://sab-invest-server.onrender.com';
 const livePriceCache = {};
 
-// Prevent previous client's cached header/profile from appearing after switching accounts.
-(function preventStaleClientHeader(){
-    const currentUid = sessionStorage.getItem('userId') || sessionStorage.getItem('customerNumber') || '';
-    const lastUid = localStorage.getItem('last_dashboard_user_id') || '';
-    if (currentUid && lastUid && currentUid !== lastUid) {
-        ['currentUser','loggedInUser','userData','customer','customerId','activeUserId'].forEach(k => localStorage.removeItem(k));
-        Object.keys(localStorage).forEach(k => {
-            if (k.startsWith('u_' + lastUid + '_')) localStorage.removeItem(k);
-        });
-    }
-    if (currentUid) localStorage.setItem('last_dashboard_user_id', currentUid);
-})();
+// ── Connect to SSE stream ──
+let sseSource = null;
+let sseRetryCount = 0;
 
+function connectSSE() {
+    if (sseSource) { try { sseSource.close(); } catch(e) {} sseSource = null; }
 
+    console.log('📡 Connecting to price stream...');
+    sseSource = new EventSource(PRICE_SERVER + '/stream');
 
-// ── PRICE DATA SOURCE ──
-// All sidebar / buy / sell prices now come ONLY from your Render backend.
-// The Render backend uses Twelve Data with your API key.
-// The TradingView widget remains ONLY for the chart.
-const PRICE_SERVER = window.SAB_BACKEND_URL || 'https://sab-invest-server.onrender.com';
-const PRICE_WS_SERVER = PRICE_SERVER.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
+    sseSource.onopen = () => {
+        sseRetryCount = 0;
+        console.log('✅ Price stream connected');
+    };
 
-let backendPriceWS = null;
-let backendPriceReconnectTimer = null;
-let backendPricePoller = null;
+    sseSource.onmessage = (event) => {
+        try {
+            const msg = JSON.parse(event.data);
 
-function handleBackendPriceUpdate(item){
-    if(!item) return;
-    const tvSym = item.tvSym || item.symbol;
-    const price = parseFloat(item.price || item.close || item.value || item.bid || item.ask);
-    if(!tvSym || !price || isNaN(price)) return;
-    const inst = instruments.find(i => i.symbol === tvSym);
-    if(inst) applyRealPrice(inst, price, 'twelvedata-backend');
-}
+            // ── Snapshot on first connect: all cached prices ──
+            if (msg.type === 'snapshot') {
+                let count = 0;
+                Object.entries(msg.prices).forEach(([tvSym, data]) => {
+                    const inst = instruments.find(i => i.symbol === tvSym);
+                    if (inst && data.price) {
+                        if (data.open && !inst._open) inst._open = data.open;
+                        applyRealPrice(inst, data.price, 'twelvedata-server');
+                        count++;
+                    }
+                });
+                console.log(`📸 Snapshot: ${count} prices loaded`);
+                renderInstruments();
+                return;
+            }
 
-async function fetchTVQuoteSingle(tvSymbol){
-    if(!tvSymbol) return;
-    try{
-        const url = PRICE_SERVER + '/price?symbol=' + encodeURIComponent(tvSymbol);
-        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
-        const data = await res.json();
-        if(data && data.price){
-            handleBackendPriceUpdate({ tvSym: data.symbol || tvSymbol, price: data.price });
-        }
-    }catch(e){
-        console.warn('Backend single price:', e.message);
-    }
-}
-
-async function fetchBackendPrices(){
-    try{
-        const res = await fetch(PRICE_SERVER + '/prices', { signal: AbortSignal.timeout(12000) });
-        const data = await res.json();
-        const prices = data.prices || {};
-        Object.entries(prices).forEach(([tvSym, obj]) => {
-            handleBackendPriceUpdate({ tvSym, price: obj.price });
-        });
-    }catch(e){
-        console.warn('Backend prices:', e.message);
-    }
-}
-
-function initBackendPriceWS(){
-    try{
-        if(backendPriceWS && backendPriceWS.readyState === WebSocket.OPEN) return;
-        if(backendPriceWS) backendPriceWS.close();
-
-        backendPriceWS = new WebSocket(PRICE_WS_SERVER + '/ws');
-
-        backendPriceWS.onopen = () => {
-            console.log('✅ Backend Twelve Data WebSocket connected');
-        };
-
-        backendPriceWS.onmessage = ev => {
-            try{
-                const msg = JSON.parse(ev.data);
-                if(msg.type === 'prices' && Array.isArray(msg.data)){
-                    msg.data.forEach(handleBackendPriceUpdate);
+            // ── Single price update ──
+            if (msg.symbol && msg.price) {
+                const inst = instruments.find(i => i.symbol === msg.symbol);
+                if (inst) {
+                    if (msg.open && !inst._open) inst._open = msg.open;
+                    applyRealPrice(inst, msg.price, 'twelvedata-server');
                 }
-                if(msg.type === 'snapshot' && msg.prices){
-                    Object.entries(msg.prices).forEach(([tvSym, obj]) => {
-                        handleBackendPriceUpdate({ tvSym, price: obj.price });
-                    });
-                }
-            }catch(e){}
-        };
+            }
+        } catch(e) {}
+    };
 
-        backendPriceWS.onclose = () => {
-            clearTimeout(backendPriceReconnectTimer);
-            backendPriceReconnectTimer = setTimeout(initBackendPriceWS, 5000);
-        };
-
-        backendPriceWS.onerror = () => {};
-    }catch(e){
-        console.warn('Backend WebSocket:', e.message);
-    }
+    sseSource.onerror = () => {
+        sseRetryCount++;
+        const delay = Math.min(1000 * Math.pow(2, sseRetryCount), 30000);
+        console.warn(`⚠️ Stream disconnected — retry in ${delay/1000}s (attempt ${sseRetryCount})`);
+        sseSource.close();
+        sseSource = null;
+        setTimeout(connectSSE, delay);
+    };
 }
 
-// Compatibility aliases for existing code paths.
-const initFocusedTwelveWS = initBackendPriceWS;
-const fetchTwelveFocusedSnapshot = () => fetchTVQuoteSingle(currentSymbol);
-
-function startTVQuotePoller(){
-    if(backendPricePoller) clearInterval(backendPricePoller);
-    fetchBackendPrices();
-    fetchTVQuoteSingle(currentSymbol);
-    backendPricePoller = setInterval(() => {
-        fetchBackendPrices();
-        fetchTVQuoteSingle(currentSymbol);
-    }, 10000);
+// ── Simulation — only for symbols not yet covered by SSE ──
+// Runs only if a symbol has no real price after 15 seconds
+function smartSimulateTick(){
+    const now = Date.now();
+    instruments.forEach(inst => {
+        const cached = livePriceCache[inst.symbol];
+        if (cached && (now - cached.time) < 60000) return; // skip if fresh
+        if (inst._stale) return; // never had real data — skip
+        const buyNum = parseFloat(String(inst.buy).replace(/,/g,''));
+        if (isNaN(buyNum) || buyNum <= 0) return;
+        const tickPct = (Math.random()-0.5)*0.00012;
+        const decimals = buyNum>=10000?2:buyNum>=1000?2:buyNum>=10?3:buyNum>=1?4:5;
+        const newBuy   = buyNum + buyNum*tickPct;
+        const rawSpread = buyNum - parseFloat(String(inst.sell).replace(/,/g,''));
+        const spread   = rawSpread>0 ? rawSpread : buyNum*0.0001;
+        const newSell  = newBuy - spread;
+        const useComma = String(inst.buy).includes(',');
+        const fmt = n => useComma
+            ? n.toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:decimals})
+            : n.toFixed(decimals);
+        const prevBuy = inst.buy;
+        inst.buy = fmt(newBuy); inst.sell = fmt(newSell);
+        if (!inst._open) inst._open = newBuy;
+        const chgVal = newBuy - inst._open;
+        inst.up  = chgVal >= 0;
+        inst.chg = (inst.up?'+':'') + chgVal.toFixed(newBuy>=100?2:3);
+        updateInstRow(inst, prevBuy);
+        if (inst.symbol === currentSymbol) applyOrderFormPrice(newBuy, newSell);
+    });
 }
 
-// Start real prices from Twelve Data through the backend.
-initBackendPriceWS();
-startTVQuotePoller();
-
-// No fake/random prices and no direct third-party price APIs in the browser.
+// Start simulation after 15s (gives SSE time to deliver real prices)
+setTimeout(() => {
+    setInterval(smartSimulateTick, 2000);
+    console.log('⏱ Simulation started (covers any gaps in SSE data)');
+}, 15000);
 
 // ════════════════════════════════════
 // applyRealPrice — core price applier
-// source param: 'twelvedata'|'polygon'|'alphavantage'|'binance'|'frankfurter'|'yahoo'|'tradingview'|'simulation'
 // ════════════════════════════════════
 function applyRealPrice(inst, numPrice, source='unknown'){
     if(!numPrice||isNaN(numPrice)||numPrice<=0) return;
-    inst._stale = false; // Mark as having a real price
+    inst._stale = false;
     const prevBuyNum = parseFloat(String(inst.buy).replace(/,/g,''))||numPrice;
     const prevSellNum= parseFloat(String(inst.sell).replace(/,/g,''))||numPrice;
     const rawSpread  = Math.abs(prevBuyNum-prevSellNum);
@@ -2193,40 +2158,13 @@ restartTimers();
 updateOrderCalc();
 
 window.addEventListener('load',()=>{
-    // Init chart immediately — Advanced Chart Widget loads its own scripts
+    // Init chart
     setTimeout(()=>{ initChart(currentSymbol, currentTF); }, 300);
 
-    // ── Aggressive initial price fetch: run all sources immediately on load ──
-    console.log('🚀 Loading real prices on startup...');
+    // Connect to Twelve Data price stream (SSE)
+    connectSSE();
 
-    // 1. TV Scanner batch — most reliable, covers everything
-    refreshAllTVPrices().then(()=>{
-        console.log('✅ Initial TV prices loaded');
-        renderInstruments();
-    });
-
-    // 2. Yahoo for commodities & indices (fast proxy)
-    fetchYahooPrices();
-
-    // 3. Forex via Frankfurter
-    fetchForexRates();
-
-    // 4. Crypto via Binance (WebSocket already running)
-
-    // 5. Start AV Gold/Silver fetch immediately
-    fetchAVGoldSilver();
-
-    // 6. After 3s, fetch again to fill any gaps
-    setTimeout(()=>{
-        refreshAllTVPrices();
-        fetchYahooPrices();
-    }, 3000);
-
-    // 7. After 6s, final sweep
-    setTimeout(()=>{
-        refreshAllTVPrices();
-        console.log('✅ Final price sweep done — simulation can now start');
-    }, 6000);
+    console.log('🚀 Price stream connecting to Render server...');
 });
 setInterval(()=>{localStorage.setItem('session_'+(sessionStorage.getItem('customerNumber')||sessionStorage.getItem('userId')||'guest'),Date.now().toString());},60000);
 localStorage.setItem('session_'+(sessionStorage.getItem('customerNumber')||sessionStorage.getItem('userId')||'guest'),Date.now().toString());
