@@ -1738,781 +1738,109 @@ const livePriceCache = {};
 })();
 
 
-// ── API KEYS (free tiers — replace with your own if needed) ──
-// Polygon.io  : free key — 15-min delayed for stocks, real-time websocket
-// Sign up at https://polygon.io (free plan: Starter)
-// Backend URL:
- // - On Netlify, keep this as your Render backend URL.
- // - If you rename your Render service, change only this line.
-const PRICE_SERVER  = window.SAB_BACKEND_URL || 'https://sab-invest-server.onrender.com';
+
+// ── PRICE DATA SOURCE ──
+// All sidebar / buy / sell prices now come ONLY from your Render backend.
+// The Render backend uses Twelve Data with your API key.
+// The TradingView widget remains ONLY for the chart.
+const PRICE_SERVER = window.SAB_BACKEND_URL || 'https://sab-invest-server.onrender.com';
 const PRICE_WS_SERVER = PRICE_SERVER.replace(/^https:/, 'wss:').replace(/^http:/, 'ws:');
-const FH_KEY        = 'd7tjtkhr01qlbd3kf4dgd7tjtkhr01qlbd3kf4e0';
-const POLYGON_KEY   = 'r5qrZp3tzCPH_csmyAP5gquyc6iWvQOp';
 
-// Alpha Vantage: free key — 25 requests/day on free plan
-// Sign up at https://www.alphavantage.co/support/#api-key
-const AV_KEY        = 'BDIU7XNG3JHO1OK2';
+let backendPriceWS = null;
+let backendPriceReconnectTimer = null;
+let backendPricePoller = null;
 
-// Twelve Data: primary source for gold / forex / stocks.
-// Note: API keys inside HTML are visible to users; for production, proxy this through your backend.
-const TWELVEDATA_KEY = '58d76203bc064ac6baefbbb4055c2b8f';
-
-// ── Helper ──
-function chunkArray(arr,size){const out=[];for(let i=0;i<arr.length;i+=size)out.push(arr.slice(i,i+size));return out;}
-
-
-// ════════════════════════════════════
-// 0. TWELVE DATA — focused WebSocket + rotating snapshots
-// Fix: Gold must be subscribed first. Free Twelve Data accounts usually cannot stream every symbol at once,
-// so the live WebSocket keeps the most important 8 symbols active and REST snapshots rotate through the rest.
-// ════════════════════════════════════
-const TWELVE_DATA_MAP = {
-    // Metals / commodities — keep these first, especially gold
-    'TVC:GOLD':'XAU/USD','TVC:SILVER':'XAG/USD','TVC:PLATINUM':'XPT/USD','TVC:PALLADIUM':'XPD/USD',
-
-    // Forex
-    'FX:EURUSD':'EUR/USD','FX:GBPUSD':'GBP/USD','FX:USDJPY':'USD/JPY','FX:USDCHF':'USD/CHF',
-    'FX:AUDUSD':'AUD/USD','FX:USDCAD':'USD/CAD','FX:NZDUSD':'NZD/USD','FX:EURJPY':'EUR/JPY',
-    'FX:GBPJPY':'GBP/JPY','FX:EURGBP':'EUR/GBP','FX:USDTRY':'USD/TRY','FX:USDSAR':'USD/SAR','FX:USDAED':'USD/AED',
-
-    // Stocks
-    'NASDAQ:AAPL':'AAPL','NASDAQ:MSFT':'MSFT','NASDAQ:TSLA':'TSLA','NASDAQ:NVDA':'NVDA','NASDAQ:META':'META',
-    'NASDAQ:AMZN':'AMZN','NASDAQ:GOOGL':'GOOGL','NASDAQ:NFLX':'NFLX','NASDAQ:AMD':'AMD','NASDAQ:INTC':'INTC',
-    'NYSE:BABA':'BABA','NYSE:JPM':'JPM','NYSE:GS':'GS',
-
-    // Indices supported depending on plan/region. If rejected, fallbacks still try to update them.
-    'TVC:SPX':'SPX','TVC:NDX':'NDX','TVC:DJI':'DJI','TVC:VIX':'VIX','TVC:UK100':'FTSE','TVC:DEU40':'DAX','TVC:FRA40':'CAC','TVC:JPN225':'NIKKEI','TVC:HSI':'HSI'
-};
-
-const TWELVE_REVERSE_MAP = Object.fromEntries(Object.entries(TWELVE_DATA_MAP).map(([tv, td]) => [td, tv]));
-let twelveFocusedWS = null;
-let twelveFocusedReconnect = null;
-let twelveSnapshotIndex = 0;
-let twelveLastFocusedKey = '';
-
-function getTwelveSymbol(tvSymbol){ return TWELVE_DATA_MAP[tvSymbol] || null; }
-function findTVSymbolFromTwelve(tdSymbol){
-    if(!tdSymbol) return null;
-    if(TWELVE_REVERSE_MAP[tdSymbol]) return TWELVE_REVERSE_MAP[tdSymbol];
-    const clean = String(tdSymbol).replace(':CUR','').replace(':FOREX','').trim();
-    if(TWELVE_REVERSE_MAP[clean]) return TWELVE_REVERSE_MAP[clean];
-    return Object.keys(TWELVE_DATA_MAP).find(k => TWELVE_DATA_MAP[k].replace('/','').toUpperCase() === clean.replace('/','').toUpperCase()) || null;
-}
-
-function getAllTwelveSymbols(){
-    return instruments.map(i => getTwelveSymbol(i.symbol)).filter(Boolean).filter((v,i,a)=>a.indexOf(v)===i);
-}
-
-function getFocusedTwelveSymbols(){
-    const priorityTV = [
-        'TVC:GOLD',        // Gold first — fixes the issue where gold stopped updating
-        currentSymbol,     // selected chart symbol second
-        'FX:EURUSD','FX:GBPUSD','FX:USDJPY',
-        'NASDAQ:AAPL','NASDAQ:TSLA','NASDAQ:NVDA'
-    ];
-    return priorityTV
-        .map(getTwelveSymbol)
-        .filter(Boolean)
-        .filter((v,i,a)=>a.indexOf(v)===i)
-        .slice(0,8); // safer for free/limited plans
-}
-
-function handleTwelveDataPrice(data){
-    const tdSymbol = data.symbol || data.instrument || data.pair;
-    const price = parseFloat(data.price || data.close || data.value || data.bid || data.ask);
-    if(!tdSymbol || !price || isNaN(price)) return;
-    const tvSym = findTVSymbolFromTwelve(tdSymbol);
-    if(!tvSym) return;
+function handleBackendPriceUpdate(item){
+    if(!item) return;
+    const tvSym = item.tvSym || item.symbol;
+    const price = parseFloat(item.price || item.close || item.value || item.bid || item.ask);
+    if(!tvSym || !price || isNaN(price)) return;
     const inst = instruments.find(i => i.symbol === tvSym);
-    if(inst) applyRealPrice(inst, price, 'twelvedata');
+    if(inst) applyRealPrice(inst, price, 'twelvedata-backend');
 }
 
-function initFocusedTwelveWS(){
-    if(!TWELVEDATA_KEY || TWELVEDATA_KEY.includes('YOUR_')) return;
-    const symbols = getFocusedTwelveSymbols();
-    const key = symbols.join(',');
-    if(key === twelveLastFocusedKey && twelveFocusedWS && twelveFocusedWS.readyState === WebSocket.OPEN) return;
-    twelveLastFocusedKey = key;
-
-    try{ if(twelveFocusedWS) twelveFocusedWS.close(); }catch(e){}
-    if(!symbols.length) return;
-
-    try{
-        twelveFocusedWS = new WebSocket('wss://ws.twelvedata.com/v1/quotes/price?apikey=' + TWELVEDATA_KEY);
-        twelveFocusedWS.onopen = () => {
-            twelveFocusedWS.send(JSON.stringify({ action:'subscribe', params:{ symbols:key } }));
-            console.log('✅ Twelve Data focused WS:', key);
-        };
-        twelveFocusedWS.onmessage = ev => {
-            try{
-                const msg = JSON.parse(ev.data);
-                if(msg.event === 'price') handleTwelveDataPrice(msg);
-                if(Array.isArray(msg.data)) msg.data.forEach(handleTwelveDataPrice);
-                if(msg.symbol && (msg.price || msg.close || msg.bid || msg.ask)) handleTwelveDataPrice(msg);
-                if(msg.event === 'subscribe-status' && msg.status === 'error') console.warn('Twelve Data subscribe error:', msg);
-            }catch(e){}
-        };
-        twelveFocusedWS.onclose = () => {
-            clearTimeout(twelveFocusedReconnect);
-            twelveFocusedReconnect = setTimeout(initFocusedTwelveWS, 5000);
-        };
-        twelveFocusedWS.onerror = () => {};
-    }catch(e){ console.warn('Twelve Data WS:', e.message); }
-}
-
-async function fetchTwelveDataSymbols(symbols){
-    if(!TWELVEDATA_KEY || TWELVEDATA_KEY.includes('YOUR_') || !symbols.length) return;
-    try{
-        const url = 'https://api.twelvedata.com/price?symbol=' + encodeURIComponent(symbols.join(',')) + '&apikey=' + TWELVEDATA_KEY;
-        const res = await fetch(url, {signal:AbortSignal.timeout(10000)});
-        const data = await res.json();
-        if(data && typeof data === 'object' && !data.price){
-            Object.entries(data).forEach(([tdSymbol, obj]) => {
-                const price = parseFloat(obj?.price);
-                if(price) handleTwelveDataPrice({symbol:tdSymbol, price});
-            });
-        } else if(data?.price && symbols.length === 1){
-            handleTwelveDataPrice({symbol:symbols[0], price:data.price});
-        }
-    }catch(e){ console.warn('Twelve Data snapshot:', e.message); }
-}
-
-async function fetchTwelveFocusedSnapshot(){
-    await fetchTwelveDataSymbols(getFocusedTwelveSymbols());
-}
-
-async function fetchTwelveRotatingSnapshot(){
-    const all = getAllTwelveSymbols();
-    if(!all.length) return;
-    const chunks = chunkArray(all, 8);
-    const chunk = chunks[twelveSnapshotIndex % chunks.length];
-    twelveSnapshotIndex++;
-    await fetchTwelveDataSymbols(chunk);
-}
-
-// Start Twelve Data with gold prioritized.
-initFocusedTwelveWS();
-fetchTwelveFocusedSnapshot();
-setInterval(fetchTwelveFocusedSnapshot, 7000);      // keeps gold/current symbol fresh
-setInterval(fetchTwelveRotatingSnapshot, 15000);    // slowly updates the rest
-
-// ════════════════════════════════════
-// 1. POLYGON.IO WebSocket (stocks & indices real-time)
-// ════════════════════════════════════
-// Maps our TradingView symbol → Polygon ticker
-const POLYGON_MAP = {
-    'NASDAQ:AAPL': 'AAPL','NASDAQ:MSFT': 'MSFT','NASDAQ:TSLA': 'TSLA',
-    'NASDAQ:NVDA': 'NVDA','NASDAQ:META': 'META','NASDAQ:AMZN': 'AMZN',
-    'NASDAQ:GOOGL':'GOOGL','NASDAQ:NFLX': 'NFLX','NASDAQ:AMD':  'AMD',
-    'NASDAQ:INTC': 'INTC','NYSE:BABA':   'BABA', 'NYSE:JPM':    'JPM',
-    'NYSE:GS':     'GS',  'TVC:NDX':     'NDX',  'TVC:DJI':     'DJI',
-    'TVC:SPX':     'SPX', 'TVC:VIX':     'VIX',
-};
-
-// Polygon Forex map (uses C: prefix for currency pairs)
-const POLYGON_FOREX_MAP = {
-    'FX:EURUSD':'C:EURUSD','FX:GBPUSD':'C:GBPUSD','FX:USDJPY':'C:USDJPY',
-    'FX:USDCHF':'C:USDCHF','FX:AUDUSD':'C:AUDUSD','FX:USDCAD':'C:USDCAD',
-    'FX:NZDUSD':'C:NZDUSD','FX:EURJPY':'C:EURJPY','FX:GBPJPY':'C:GBPJPY',
-    'FX:EURGBP':'C:EURGBP','FX:USDTRY':'C:USDTRY','FX:USDSAR':'C:USDSAR',
-};
-
-// Polygon Crypto map (uses X: prefix)
-const POLYGON_CRYPTO_MAP = {
-    'COINBASE:BTCUSD':  'X:BTCUSD',
-    'COINBASE:ETHUSD':  'X:ETHUSD',
-    'COINBASE:SOLUSD':  'X:SOLUSD',
-    'COINBASE:XRPUSD':  'X:XRPUSD',
-    'COINBASE:DOGEUSD': 'X:DOGEUSD',
-};
-
-let polygonWS = null;
-
-function initPolygonWS(){
-    
-    if(false){ // Polygon key active
-        console.log('ℹ️ Polygon.io: using demo key — falling back to REST sources');
-        return;
-    }
-    try{
-        polygonWS = new WebSocket('wss://socket.polygon.io/stocks');
-        polygonWS.onopen = () => {
-            polygonWS.send(JSON.stringify({action:'auth', params: POLYGON_KEY}));
-        };
-        polygonWS.onmessage = ev => {
-            try{
-                const msgs = JSON.parse(ev.data);
-                msgs.forEach(msg => {
-                    if(msg.ev === 'authenticated'){
-                        // Subscribe to all stock tickers
-                        const tickers = Object.values(POLYGON_MAP).join(',');
-                        polygonWS.send(JSON.stringify({action:'subscribe', params: tickers.split(',').map(t=>'T.'+t).join(',')}));
-                        console.log('✅ Polygon.io authenticated, subscribed to:', tickers);
-                    }
-                    // Trade event
-                    if(msg.ev === 'T' || msg.ev === 'Q'){
-                        const price = parseFloat(msg.p || msg.bp || 0);
-                        if(!price) return;
-                        const tvSym = Object.keys(POLYGON_MAP).find(k => POLYGON_MAP[k] === msg.sym);
-                        if(!tvSym) return;
-                        const inst = instruments.find(i => i.symbol === tvSym);
-                        if(inst) applyRealPrice(inst, price, 'polygon');
-                    }
-                    // Forex quote
-                    if(msg.ev === 'C'){
-                        const price = parseFloat(msg.a || msg.b || 0); // ask or bid
-                        if(!price) return;
-                        const tvSym = Object.keys(POLYGON_FOREX_MAP).find(k => POLYGON_FOREX_MAP[k] === 'C:'+msg.p);
-                        if(!tvSym) return;
-                        const inst = instruments.find(i => i.symbol === tvSym);
-                        if(inst) applyRealPrice(inst, price, 'polygon');
-                    }
-                    // Crypto
-                    if(msg.ev === 'XA' || msg.ev === 'XQ'){
-                        const price = parseFloat(msg.p || msg.bp || 0);
-                        if(!price) return;
-                        const pair = (msg.pair||'').replace('-','/');
-                        const tvSym = Object.keys(POLYGON_CRYPTO_MAP).find(k=>k.includes(pair.replace('/','').slice(0,6)));
-                        if(!tvSym) return;
-                        const inst = instruments.find(i => i.symbol === tvSym);
-                        if(inst) applyRealPrice(inst, price, 'polygon');
-                    }
-                });
-            }catch(e){}
-        };
-        polygonWS.onclose = () => setTimeout(initPolygonWS, 5000);
-        polygonWS.onerror = () => {};
-    }catch(e){}
-}
-initPolygonWS();
-
-// ════════════════════════════════════
-// 1b. Polygon.io REST — batch snapshot (stocks, fallback when WS not connected)
-// Endpoint: /v2/snapshot/locale/us/markets/stocks/tickers
-// ════════════════════════════════════
-async function fetchPolygonStocksREST(){
-    // Polygon key active
-    const tickers = Object.values(POLYGON_MAP).filter(t=>!['NDX','DJI','SPX'].includes(t)).join(',');
-    if(!tickers) return;
-    try{
-        const url = `https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers?tickers=${tickers}&apiKey=${POLYGON_KEY}`;
-        const res = await fetch(url, {signal: AbortSignal.timeout(10000)});
-        const data = await res.json();
-        (data.tickers||[]).forEach(t=>{
-            const price = t.day?.c || t.lastTrade?.p || t.prevDay?.c;
-            if(!price) return;
-            const tvSym = Object.keys(POLYGON_MAP).find(k => POLYGON_MAP[k] === t.ticker);
-            if(!tvSym) return;
-            const inst = instruments.find(i => i.symbol === tvSym);
-            if(inst){
-                if(t.day?.o && !inst._open) inst._open = t.day.o;
-                applyRealPrice(inst, price, 'polygon-rest');
-            }
-        });
-        console.log('✅ Polygon REST stocks updated');
-    }catch(e){ console.warn('Polygon REST:', e.message); }
-}
-
-// ════════════════════════════════════
-// 1c. Polygon.io REST — Forex snapshot
-// ════════════════════════════════════
-async function fetchPolygonForexREST(){
-    // Polygon key active
-    const pairs = Object.values(POLYGON_FOREX_MAP).map(v=>v.replace('C:','')).join(',');
-    try{
-        const url = `https://api.polygon.io/v2/snapshot/locale/global/markets/forex/tickers?tickers=${Object.values(POLYGON_FOREX_MAP).join(',')}&apiKey=${POLYGON_KEY}`;
-        const res = await fetch(url, {signal: AbortSignal.timeout(10000)});
-        const data = await res.json();
-        (data.tickers||[]).forEach(t=>{
-            const price = t.day?.c || t.lastQuote?.a || t.prevDay?.c;
-            if(!price) return;
-            const tvSym = Object.keys(POLYGON_FOREX_MAP).find(k => POLYGON_FOREX_MAP[k] === t.ticker);
-            if(!tvSym) return;
-            const inst = instruments.find(i => i.symbol === tvSym);
-            if(inst){
-                if(t.day?.o && !inst._open) inst._open = t.day.o;
-                applyRealPrice(inst, price, 'polygon-rest');
-            }
-        });
-    }catch(e){}
-}
-
-// Run Polygon REST every 15s as complement to WebSocket
-if(true){ // Polygon key active
-    fetchPolygonStocksREST();
-    fetchPolygonForexREST();
-    setInterval(fetchPolygonStocksREST, 15000);
-    setInterval(fetchPolygonForexREST, 15000);
-}
-
-// ════════════════════════════════════
-// 2. ALPHA VANTAGE — Forex & Commodities
-// Free: 25 requests/day. We stagger calls to avoid hitting limit.
-// Forex: CURRENCY_EXCHANGE_RATE endpoint
-// ════════════════════════════════════
-const AV_FOREX = [
-    {from:'EUR',to:'USD',tvSym:'FX:EURUSD'},{from:'GBP',to:'USD',tvSym:'FX:GBPUSD'},
-    {from:'USD',to:'JPY',tvSym:'FX:USDJPY'},{from:'USD',to:'CHF',tvSym:'FX:USDCHF'},
-    {from:'AUD',to:'USD',tvSym:'FX:AUDUSD'},{from:'USD',to:'CAD',tvSym:'FX:USDCAD'},
-    {from:'NZD',to:'USD',tvSym:'FX:NZDUSD'},{from:'EUR',to:'JPY',tvSym:'FX:EURJPY'},
-    {from:'GBP',to:'JPY',tvSym:'FX:GBPJPY'},{from:'EUR',to:'GBP',tvSym:'FX:EURGBP'},
-    {from:'USD',to:'TRY',tvSym:'FX:USDTRY'},{from:'USD',to:'SAR',tvSym:'FX:USDSAR'},
-    {from:'XAU',to:'USD',tvSym:'TVC:GOLD'},{from:'XAG',to:'USD',tvSym:'TVC:SILVER'},
-    {from:'XPT',to:'USD',tvSym:'TVC:PLATINUM'},
-];
-
-// Alpha Vantage stocks (5 requests per minute on free plan)
-const AV_STOCKS = [
-    {symbol:'AAPL',tvSym:'NASDAQ:AAPL'},{symbol:'MSFT',tvSym:'NASDAQ:MSFT'},
-    {symbol:'TSLA',tvSym:'NASDAQ:TSLA'},{symbol:'NVDA',tvSym:'NASDAQ:NVDA'},
-    {symbol:'META',tvSym:'NASDAQ:META'},{symbol:'AMZN',tvSym:'NASDAQ:AMZN'},
-    {symbol:'GOOGL',tvSym:'NASDAQ:GOOGL'},{symbol:'NFLX',tvSym:'NASDAQ:NFLX'},
-    {symbol:'AMD',tvSym:'NASDAQ:AMD'},{symbol:'INTC',tvSym:'NASDAQ:INTC'},
-    {symbol:'JPM',tvSym:'NYSE:JPM'},{symbol:'GS',tvSym:'NYSE:GS'},
-];
-
-let avForexIdx = 0;  // rotate through forex pairs one by one
-let avStockIdx = 0;
-
-async function fetchAVForexOne(){
-    // AV key active
-    const pair = AV_FOREX[avForexIdx % AV_FOREX.length];
-    avForexIdx++;
-    try{
-        const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${pair.from}&to_currency=${pair.to}&apikey=${AV_KEY}`;
-        const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
-        const data = await res.json();
-        const rate = data['Realtime Currency Exchange Rate'];
-        if(!rate) return;
-        const price = parseFloat(rate['5. Exchange Rate']);
-        if(!price || isNaN(price)) return;
-        const inst = instruments.find(i => i.symbol === pair.tvSym);
-        if(inst){
-            const open = parseFloat(rate['8. Bid Price']) || price;
-            if(!inst._open) inst._open = open;
-            applyRealPrice(inst, price, 'alphavantage');
-            console.log(`✅ Alpha Vantage ${pair.from}/${pair.to}: ${price}`);
-        }
-    }catch(e){ console.warn('AV Forex:', e.message); }
-}
-
-async function fetchAVStockOne(){
-    // AV key active
-    const stock = AV_STOCKS[avStockIdx % AV_STOCKS.length];
-    avStockIdx++;
-    try{
-        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${stock.symbol}&apikey=${AV_KEY}`;
-        const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
-        const data = await res.json();
-        const q = data['Global Quote'];
-        if(!q) return;
-        const price = parseFloat(q['05. price']);
-        if(!price || isNaN(price)) return;
-        const inst = instruments.find(i => i.symbol === stock.tvSym);
-        if(inst){
-            const open = parseFloat(q['02. open']) || price;
-            if(!inst._open) inst._open = open;
-            applyRealPrice(inst, price, 'alphavantage');
-            console.log(`✅ Alpha Vantage ${stock.symbol}: ${price}`);
-        }
-    }catch(e){ console.warn('AV Stock:', e.message); }
-}
-
-// Stagger AV calls: one forex every 30s, one stock every 60s
-// (25 req/day free plan = roughly 1 req per 3456s — we stay well under)
-if(true){ // AV key active
-    fetchAVForexOne();
-    setTimeout(()=>{ fetchAVStockOne(); setInterval(fetchAVStockOne, 60000); }, 15000);
-    setInterval(fetchAVForexOne, 12000);  // 5 calls/min on free plan
-}
-
-// ════════════════════════════════════
-// 3. BINANCE WebSocket — Crypto real-time (no key needed)
-// ════════════════════════════════════
-const BINANCE_MAP = {
-    'COINBASE:BTCUSD':'btcusdt','COINBASE:ETHUSD':'ethusdt',
-    'COINBASE:SOLUSD':'solusdt','COINBASE:XRPUSD':'xrpusdt',
-    'COINBASE:DOGEUSD':'dogeusdt','BINANCE:BNBUSDT':'bnbusdt',
-    'COINBASE:ADAUSD':'adausdt','COINBASE:AVAXUSD':'avaxusdt',
-    'COINBASE:LINKUSD':'linkusdt',
-};
-
-(function initBinanceWS(){
-    const streams = Object.values(BINANCE_MAP).map(s => s+'@aggTrade').join('/');
-    try{
-        const ws = new WebSocket('wss://stream.binance.com:9443/stream?streams='+streams);
-        ws.onmessage = ev => {
-            try{
-                const msg = JSON.parse(ev.data);
-                if(!msg.data) return;
-                const sym = (msg.data.s||'').toLowerCase();
-                const price = parseFloat(msg.data.p);
-                if(!price) return;
-                const tvSym = Object.keys(BINANCE_MAP).find(k => BINANCE_MAP[k] === sym);
-                if(!tvSym) return;
-                const inst = instruments.find(i => i.symbol === tvSym);
-                if(inst) applyRealPrice(inst, price, 'binance');
-            }catch(e){}
-        };
-        ws.onclose = () => setTimeout(initBinanceWS, 3000);
-        ws.onerror = () => {};
-    }catch(e){}
-})();
-
-// ════════════════════════════════════
-// 4. FRANKFURTER — Forex fallback (free, no key, updates once/day)
-// ════════════════════════════════════
-const FOREX_PAIRS = {
-    'FX:EURUSD':['EUR','USD'],'FX:GBPUSD':['GBP','USD'],'FX:USDJPY':['USD','JPY'],
-    'FX:USDCHF':['USD','CHF'],'FX:AUDUSD':['AUD','USD'],'FX:USDCAD':['USD','CAD'],
-    'FX:NZDUSD':['NZD','USD'],'FX:EURJPY':['EUR','JPY'],'FX:GBPJPY':['GBP','JPY'],
-    'FX:EURGBP':['EUR','GBP'],'FX:USDTRY':['USD','TRY'],'FX:USDSAR':['USD','SAR'],
-    'FX:USDAED':['USD','AED'],
-};
-async function fetchForexRates(){
-    try{
-        const res = await fetch('https://api.frankfurter.app/latest?from=USD', {signal: AbortSignal.timeout(8000)});
-        const data = await res.json();
-        if(!data.rates) return;
-        const r = data.rates;
-        Object.entries(FOREX_PAIRS).forEach(([tvSym,[base,quote]])=>{
-            // Skip if we already have a fresh price from Polygon/AV
-            const cached = livePriceCache[tvSym];
-            if(cached && (Date.now()-cached.time) < 120000) return; // skip if <2min old
-            let price;
-            if(base==='USD') price=r[quote];
-            else if(quote==='USD') price=r[base]?1/r[base]:null;
-            else{const b2u=r[base]?1/r[base]:null;const q=r[quote]?1/r[quote]:null;if(b2u&&q)price=b2u/q;}
-            if(!price) return;
-            const inst = instruments.find(i => i.symbol === tvSym);
-            if(inst) applyRealPrice(inst, price, 'frankfurter');
-        });
-        console.log('✅ Frankfurter forex rates updated');
-    }catch(e){}
-}
-fetchForexRates();
-setInterval(fetchForexRates, 60000); // Frankfurter updates once/day, check every min for freshness
-
-// ════════════════════════════════════
-// 5. YAHOO FINANCE proxy — stocks & commodities fallback
-// ════════════════════════════════════
-const YAHOO_SYMBOLS = {
-    'TVC:GOLD':'GC=F','TVC:SILVER':'SI=F','TVC:PLATINUM':'PL=F','TVC:PALLADIUM':'PA=F',
-    'TVC:USOIL':'CL=F','TVC:UKOIL':'BZ=F','TVC:NATGAS':'NG=F','TVC:COPPER':'HG=F',
-    'TVC:SPX':'%5EGSPC','TVC:NDX':'%5ENDX','TVC:DJI':'%5EDJI','TVC:VIX':'%5EVIX',
-    'TVC:UK100':'%5EFTSE','TVC:DEU40':'%5EGDAXI','TVC:FRA40':'%5EFCHI',
-    'TVC:JPN225':'%5EN225','TVC:HSI':'%5EHSI',
-    'NASDAQ:AAPL':'AAPL','NASDAQ:MSFT':'MSFT','NASDAQ:TSLA':'TSLA',
-    'NASDAQ:NVDA':'NVDA','NASDAQ:META':'META','NASDAQ:AMZN':'AMZN',
-    'NASDAQ:GOOGL':'GOOGL','NASDAQ:NFLX':'NFLX','NASDAQ:AMD':'AMD',
-    'NASDAQ:INTC':'INTC','NYSE:BABA':'BABA','NYSE:JPM':'JPM','NYSE:GS':'GS',
-};
-
-async function fetchYahooPrices(){
-    const tickers = [...new Set(Object.values(YAHOO_SYMBOLS))].join(',');
-    const yahooUrl = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}&fields=regularMarketPrice,regularMarketOpen`;
-    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(yahooUrl)}`;
-    try{
-        const res = await fetch(proxyUrl, {signal: AbortSignal.timeout(12000)});
-        const json = await res.json();
-        const data = JSON.parse(json.contents);
-        const quotes = data?.quoteResponse?.result||[];
-        quotes.forEach(q=>{
-            const price = q.regularMarketPrice;
-            if(!price) return;
-            Object.entries(YAHOO_SYMBOLS).forEach(([tvSym, yahooTicker])=>{
-                if(decodeURIComponent(yahooTicker)!==q.symbol && yahooTicker!==q.symbol) return;
-                // Skip if Polygon/AV already gave us a fresh price
-                const cached = livePriceCache[tvSym];
-                if(cached && (Date.now()-cached.time) < 30000) return;
-                const inst = instruments.find(i => i.symbol === tvSym);
-                if(!inst) return;
-                if(q.regularMarketOpen && !inst._open) inst._open = q.regularMarketOpen;
-                applyRealPrice(inst, price, 'yahoo');
-            });
-        });
-        console.log('✅ Yahoo Finance prices updated');
-    }catch(e){ console.warn('Yahoo:', e.message); }
-}
-fetchYahooPrices();
-setInterval(fetchYahooPrices, 10000);
-fetchIndicesYahoo(); // fetch indices separately too
-
-// ════════════════════════════════════
-// 6. TRADINGVIEW — two endpoints for real-time data
-//    6a. /quote  — single symbol, used for the active chart symbol (most accurate)
-//    6b. /scan   — batch, used for the whole list
-// ════════════════════════════════════
-const ALL_TV_SYMBOLS = instruments.map(i => i.symbol);
-
-// 6a. Single-symbol quote — highest priority for the currently selected symbol
 async function fetchTVQuoteSingle(tvSymbol){
     if(!tvSymbol) return;
     try{
-        // TV's quote endpoint returns the exact same price shown in the chart header
-        const body = {
-            symbols: { tickers: [tvSymbol], query: { types: [] } },
-            columns: ['close','open','high','low','change','change_abs','Recommend.All']
-        };
-        const res = await fetch('https://scanner.tradingview.com/global/scan',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify(body),
-            signal:AbortSignal.timeout(6000)
-        });
+        const url = PRICE_SERVER + '/price?symbol=' + encodeURIComponent(tvSymbol);
+        const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
         const data = await res.json();
-        const item = data?.data?.[0];
-        if(!item?.d?.[0]) return;
-        const price = parseFloat(item.d[0]);
-        const open  = parseFloat(item.d[1]);
-        if(!price||isNaN(price)) return;
-        const inst = instruments.find(i => i.symbol===tvSymbol);
-        if(!inst) return;
-        if(open && !inst._open) inst._open = open;
-        applyRealPrice(inst, price, 'tv-quote-live');
-        console.log(`📡 TV Quote ${tvSymbol}: ${price}`);
-    }catch(e){}
-}
-
-// Poll the current symbol every 2 seconds — very close to real-time
-// ── Multi-source real-time price fetcher ──
-// Uses multiple free APIs with no CORS issues
-
-// Source A: Metals-Live via open exchange (no key needed)
-async function fetchMetalsLive(){
-    try{
-        // Use exchangerate.host which has metals support (free, no CORS)
-        const res = await fetch('https://api.exchangerate.host/live?access_key=free&currencies=XAU,XAG,XPT,XPD&source=USD', {signal:AbortSignal.timeout(6000)});
-        const data = await res.json();
-        const quotes = data?.quotes || {};
-        const metalMap = {'USDXAU':'TVC:GOLD','USDXAG':'TVC:SILVER','USDXPT':'TVC:PLATINUM','USDXPD':'TVC:PALLADIUM'};
-        Object.entries(metalMap).forEach(([key, tvSym])=>{
-            if(!quotes[key]) return;
-            // quotes give USD per 1 unit of metal, need to invert for XAU/USD
-            const price = key.startsWith('USD') ? 1/quotes[key] : quotes[key];
-            if(!price||isNaN(price)||price<10) return;
-            const inst = instruments.find(i=>i.symbol===tvSym);
-            if(inst){ applyRealPrice(inst, price, 'exchangerate-metals'); console.log(`✅ Metal ${tvSym}: ${price.toFixed(2)}`); }
-        });
-    }catch(e){}
-}
-
-// Source B: Alpha Vantage for Gold/Silver (AV key = BDIU7XNG3JHO1OK2)
-async function fetchAVGoldSilver(){
-    const pairs = [
-        {from:'XAU', to:'USD', tvSym:'TVC:GOLD'},
-        {from:'XAG', to:'USD', tvSym:'TVC:SILVER'},
-    ];
-    for(const pair of pairs){
-        try{
-            const url = `https://www.alphavantage.co/query?function=CURRENCY_EXCHANGE_RATE&from_currency=${pair.from}&to_currency=${pair.to}&apikey=${AV_KEY}`;
-            const res = await fetch(url, {signal: AbortSignal.timeout(8000)});
-            const data = await res.json();
-            const rate = data['Realtime Currency Exchange Rate'];
-            if(!rate) continue;
-            const price = parseFloat(rate['5. Exchange Rate']);
-            if(!price || isNaN(price)) continue;
-            const inst = instruments.find(i => i.symbol === pair.tvSym);
-            if(inst){
-                if(!inst._open) inst._open = parseFloat(rate['8. Bid Price']) || price;
-                applyRealPrice(inst, price, 'alphavantage-gold');
-                console.log(`✅ AV ${pair.from}/${pair.to}: ${price}`);
-                if(inst.symbol === currentSymbol){ const cp=s('chartPrice'); if(cp) cp.textContent=inst.buy; }
-            }
-            await new Promise(r=>setTimeout(r,1200));
-        }catch(e){ console.warn('AV Gold/Silver:', e.message); }
+        if(data && data.price){
+            handleBackendPriceUpdate({ tvSym: data.symbol || tvSymbol, price: data.price });
+        }
+    }catch(e){
+        console.warn('Backend single price:', e.message);
     }
 }
 
-// Source C: CoinGecko for crypto (free, no key, no CORS)
-async function fetchCoinGeckoPrices(){
-    const cgMap = {
-        'bitcoin':'COINBASE:BTCUSD','ethereum':'COINBASE:ETHUSD',
-        'solana':'COINBASE:SOLUSD','ripple':'COINBASE:XRPUSD',
-        'binancecoin':'BINANCE:BNBUSDT','cardano':'COINBASE:ADAUSD',
-        'dogecoin':'COINBASE:DOGEUSD','avalanche-2':'COINBASE:AVAXUSD',
-        'chainlink':'COINBASE:LINKUSD',
-    };
+async function fetchBackendPrices(){
     try{
-        const ids = Object.keys(cgMap).join(',');
-        const url = `https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true`;
-        const res = await fetch(url, {signal:AbortSignal.timeout(8000)});
+        const res = await fetch(PRICE_SERVER + '/prices', { signal: AbortSignal.timeout(12000) });
         const data = await res.json();
-        Object.entries(cgMap).forEach(([cgId, tvSym])=>{
-            const p = data[cgId]?.usd;
-            if(!p) return;
-            const inst = instruments.find(i=>i.symbol===tvSym);
-            if(inst){ applyRealPrice(inst, p, 'coingecko'); }
+        const prices = data.prices || {};
+        Object.entries(prices).forEach(([tvSym, obj]) => {
+            handleBackendPriceUpdate({ tvSym, price: obj.price });
         });
-        console.log('✅ CoinGecko crypto prices updated');
-    }catch(e){ console.warn('CoinGecko:', e.message); }
+    }catch(e){
+        console.warn('Backend prices:', e.message);
+    }
 }
 
-// Source D: Open Exchange Rates for forex (free tier, no CORS)
-async function fetchOpenExchangeForex(){
+function initBackendPriceWS(){
     try{
-        // Frankfurter is reliable and free with no CORS
-        const res = await fetch('https://api.frankfurter.app/latest?from=USD&to=EUR,GBP,JPY,CHF,AUD,CAD,NZD,TRY,SAR,AED', {signal:AbortSignal.timeout(6000)});
-        const data = await res.json();
-        if(!data.rates) return;
-        const r = data.rates;
-        const fxMap = {
-            'FX:EURUSD': r.EUR?1/r.EUR:null,
-            'FX:GBPUSD': r.GBP?1/r.GBP:null,
-            'FX:USDJPY': r.JPY||null,
-            'FX:USDCHF': r.CHF||null,
-            'FX:AUDUSD': r.AUD?1/r.AUD:null,
-            'FX:USDCAD': r.CAD||null,
-            'FX:NZDUSD': r.NZD?1/r.NZD:null,
-            'FX:USDTRY': r.TRY||null,
-            'FX:USDSAR': r.SAR||null,
-            'FX:USDAED': r.AED||null,
+        if(backendPriceWS && backendPriceWS.readyState === WebSocket.OPEN) return;
+        if(backendPriceWS) backendPriceWS.close();
+
+        backendPriceWS = new WebSocket(PRICE_WS_SERVER + '/ws');
+
+        backendPriceWS.onopen = () => {
+            console.log('✅ Backend Twelve Data WebSocket connected');
         };
-        // Cross rates
-        if(r.EUR&&r.JPY) fxMap['FX:EURJPY'] = (1/r.EUR)*r.JPY;
-        if(r.GBP&&r.JPY) fxMap['FX:GBPJPY'] = (1/r.GBP)*r.JPY;
-        if(r.EUR&&r.GBP) fxMap['FX:EURGBP'] = (r.GBP/r.EUR);
-        Object.entries(fxMap).forEach(([tvSym, price])=>{
-            if(!price) return;
-            const inst = instruments.find(i=>i.symbol===tvSym);
-            if(inst) applyRealPrice(inst, price, 'frankfurter-direct');
-        });
-        console.log('✅ Frankfurter forex rates updated');
-    }catch(e){}
+
+        backendPriceWS.onmessage = ev => {
+            try{
+                const msg = JSON.parse(ev.data);
+                if(msg.type === 'prices' && Array.isArray(msg.data)){
+                    msg.data.forEach(handleBackendPriceUpdate);
+                }
+                if(msg.type === 'snapshot' && msg.prices){
+                    Object.entries(msg.prices).forEach(([tvSym, obj]) => {
+                        handleBackendPriceUpdate({ tvSym, price: obj.price });
+                    });
+                }
+            }catch(e){}
+        };
+
+        backendPriceWS.onclose = () => {
+            clearTimeout(backendPriceReconnectTimer);
+            backendPriceReconnectTimer = setTimeout(initBackendPriceWS, 5000);
+        };
+
+        backendPriceWS.onerror = () => {};
+    }catch(e){
+        console.warn('Backend WebSocket:', e.message);
+    }
 }
 
-// Source E: Indices via Yahoo Finance proxy
-async function fetchIndicesYahoo(){
-    const indexMap = {
-        '%5EGSPC':'TVC:SPX','%5EDJI':'TVC:DJI','%5ENDX':'TVC:NDX',
-        '%5EVIX':'TVC:VIX','%5EFTSE':'TVC:UK100','%5EGDAXI':'TVC:DEU40',
-        '%5EFCHI':'TVC:FRA40','%5EN225':'TVC:JPN225','%5EHSI':'TVC:HSI',
-    };
-    const tickers = Object.keys(indexMap).join(',');
-    const url = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${tickers}&fields=regularMarketPrice,regularMarketOpen`;
-    const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-    try{
-        const res = await fetch(proxy, {signal:AbortSignal.timeout(10000)});
-        const json = await res.json();
-        const quotes = JSON.parse(json.contents)?.quoteResponse?.result||[];
-        quotes.forEach(q=>{
-            const price = q.regularMarketPrice;
-            if(!price) return;
-            const encoded = encodeURIComponent(q.symbol);
-            const tvSym = indexMap[encoded] || indexMap[q.symbol];
-            if(!tvSym) return;
-            const inst = instruments.find(i=>i.symbol===tvSym);
-            if(inst){
-                if(q.regularMarketOpen && !inst._open) inst._open = q.regularMarketOpen;
-                applyRealPrice(inst, price, 'yahoo-indices');
-                console.log(`✅ Index ${tvSym}: ${price}`);
-            }
-        });
-    }catch(e){ console.warn('Yahoo indices:', e.message); }
-}
-
-// Start all sources immediately
-fetchAVGoldSilver();
-fetchCoinGeckoPrices();
-fetchOpenExchangeForex();
-fetchIndicesYahoo();
-fetchMetalsLive();
-
-// Polling intervals
-setInterval(fetchAVGoldSilver, 30000);
-setInterval(fetchCoinGeckoPrices, 15000);
-setInterval(fetchOpenExchangeForex, 30000);
-setInterval(fetchIndicesYahoo, 15000);
-setInterval(fetchMetalsLive, 60000);
+// Compatibility aliases for existing code paths.
+const initFocusedTwelveWS = initBackendPriceWS;
+const fetchTwelveFocusedSnapshot = () => fetchTVQuoteSingle(currentSymbol);
 
 function startTVQuotePoller(){
-    if(tvQuoteInterval) clearInterval(tvQuoteInterval);
-    tvQuoteInterval = setInterval(()=> fetchTVQuoteSingle(currentSymbol), 1500);
-    fetchTVQuoteSingle(currentSymbol); // immediate
+    if(backendPricePoller) clearInterval(backendPricePoller);
+    fetchBackendPrices();
+    fetchTVQuoteSingle(currentSymbol);
+    backendPricePoller = setInterval(() => {
+        fetchBackendPrices();
+        fetchTVQuoteSingle(currentSymbol);
+    }, 10000);
 }
+
+// Start real prices from Twelve Data through the backend.
+initBackendPriceWS();
 startTVQuotePoller();
 
-// 6b. Batch scanner — all symbols every 10s
-async function fetchTVBatch(symbolList){
-    if(!symbolList||!symbolList.length) return;
-    try{
-        const body = {symbols:{tickers:symbolList,query:{types:[]}}, columns:['close','open']};
-        const res = await fetch('https://scanner.tradingview.com/global/scan',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify(body),
-            signal:AbortSignal.timeout(15000)
-        });
-        const data = await res.json();
-        if(!data?.data) return;
-        data.data.forEach((item,idx)=>{
-            const tvSym = symbolList[idx];
-            const price = parseFloat(item?.d?.[0]);
-            const open  = parseFloat(item?.d?.[1]);
-            if(!price||isNaN(price)) return;
-            // For the active symbol, only update if tv-quote-live hasn't run in 5s
-            const cached = livePriceCache[tvSym];
-            if(tvSym===currentSymbol && cached && cached.source==='tv-quote-live' && (Date.now()-cached.time)<5000) return;
-            // For other symbols, skip if fresh from a premium source
-            if(cached && (Date.now()-cached.time)<20000 && ['twelvedata','polygon','alphavantage','binance','polygon-rest'].includes(cached.source)) return;
-            const inst = instruments.find(i => i.symbol===tvSym);
-            if(!inst) return;
-            if(open && !inst._open) inst._open = open;
-            applyRealPrice(inst, price, 'tradingview-scan');
-        });
-    }catch(e){ console.warn('TV scanner:', e.message); }
-}
-
-async function refreshAllTVPrices(){
-    const chunks = chunkArray(ALL_TV_SYMBOLS, 40);
-    for(const chunk of chunks){
-        await fetchTVBatch(chunk);
-        await new Promise(r=>setTimeout(r,300));
-    }
-}
-// TV Scanner as fallback: every 12s
-refreshAllTVPrices();
-setInterval(refreshAllTVPrices, 8000);
-
-// ════════════════════════════════════
-// 7. SIMULATION — last resort gap-filler
-// Only activates if no real data in last 20 seconds
-// ════════════════════════════════════
-function smartSimulateTick(){
-    const now = Date.now();
-    instruments.forEach(inst=>{
-        // Skip if we have a real price fresher than 30s
-        const cached = livePriceCache[inst.symbol];
-        if(cached && (now-cached.time) < 60000) return; // 60s fresh window
-        // Skip instruments that never got a real price (still stale)
-        if(inst._stale) return;
-        const buyNum = parseFloat(String(inst.buy).replace(/,/g,''));
-        if(isNaN(buyNum)||buyNum<=0) return;
-        const tickPct = (Math.random()-0.5)*0.00012;
-        const decimals = buyNum>=10000?2:buyNum>=1000?2:buyNum>=10?3:buyNum>=1?4:5;
-        const newBuy = buyNum+buyNum*tickPct;
-        const rawSpread = buyNum-parseFloat(String(inst.sell).replace(/,/g,''));
-        const spread = rawSpread>0?rawSpread:buyNum*0.0001;
-        const newSell = newBuy-spread;
-        const useComma = String(inst.buy).includes(',');
-        const fmt = n=>useComma?n.toLocaleString('en-US',{minimumFractionDigits:decimals,maximumFractionDigits:decimals}):n.toFixed(decimals);
-        const prevBuy = inst.buy;
-        inst.buy = fmt(newBuy); inst.sell = fmt(newSell);
-        if(!inst._open) inst._open = newBuy;
-        const chgVal = newBuy-inst._open;
-        inst.up = chgVal>=0;
-        inst.chg = (inst.up?'+':'')+chgVal.toFixed(newBuy>=100?2:3);
-        updateInstRow(inst, prevBuy);
-        if(inst.symbol===currentSymbol) applyOrderFormPrice(newBuy,newSell);
-    });
-}
-// Delay simulation start by 8s to let real price sources load first
-let _simStarted = false;
-setTimeout(()=>{
-    _simStarted = true;
-    setInterval(smartSimulateTick, 2000);
-    console.log('⏱ Simulation started (real prices should be loaded by now)');
-}, 8000);
+// No fake/random prices and no direct third-party price APIs in the browser.
 
 // ════════════════════════════════════
 // applyRealPrice — core price applier
