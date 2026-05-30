@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>المعلومات القانونية | الأول للاستثمار</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --red: #ef233c;
+            --red-dim: rgba(239,35,60,0.12);
+            --black: #000;
+            --dark: #080808;
+            --dark2: #0f0f0f;
+            --border: rgba(255,255,255,0.08);
+            --text-muted: #888;
+        }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Cairo', sans-serif; background: var(--black); color: #fff; min-height: 100vh; }
+
+        /* NAVBAR */
+        .navbar {
+            position: fixed; width: 100%; top: 0; z-index: 9999;
+            padding: 0 5%; height: 70px;
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(0,0,0,0.97); border-bottom: 1px solid var(--border);
+        }
+        .logo-link { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+        .company-name { font-weight: 700; font-size: 1.05rem; color: #fff; }
+        .company-sub { font-size: 0.65rem; color: var(--red); letter-spacing: 0.15em; display: block; }
+        .back-btn {
+            color: var(--text-muted); text-decoration: none; font-size: 0.88rem;
+            font-weight: 600; padding: 7px 16px;
+            border: 1px solid var(--border); border-radius: 100px; transition: all 0.2s;
+        }
+        .back-btn:hover { color: var(--red); border-color: var(--red); }
+
+        /* HERO */
+        .page-hero {
+            padding-top: 70px; min-height: 220px;
+            display: flex; align-items: center; justify-content: center;
+            flex-direction: column; gap: 12px;
+            background: linear-gradient(135deg, #050505 0%, #0a0a0a 100%);
+            border-bottom: 1px solid var(--border); position: relative; overflow: hidden;
+        }
+        .page-hero::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(ellipse at 50% 100%, rgba(239,35,60,0.07) 0%, transparent 60%);
+        }
+        .page-badge {
+            background: var(--red-dim); border: 1px solid var(--red);
+            color: var(--red); font-size: 0.7rem; font-weight: 700;
+            letter-spacing: 0.2em; padding: 5px 16px; border-radius: 100px;
+            text-transform: uppercase; position: relative;
+        }
+        .page-title { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 900; position: relative; }
+
+        /* TABS */
+        .tabs-nav {
+            display: flex; justify-content: center; gap: 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--dark); position: sticky; top: 70px; z-index: 10;
+        }
+        .tab-btn {
+            padding: 16px 40px; font-family: 'Cairo', sans-serif;
+            font-size: 0.95rem; font-weight: 600; color: var(--text-muted);
+            background: none; border: none; cursor: pointer;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .tab-btn:hover { color: #fff; }
+        .tab-btn.active { color: var(--red); border-bottom-color: var(--red); }
+
+        /* CONTENT */
+        .tab-pane { display: none; }
+        .tab-pane.active { display: block; }
+
+        .content-wrap {
+            max-width: 860px; margin: 0 auto; padding: 48px 5% 80px;
+        }
+
+        .legal-section {
+            margin-bottom: 36px;
+        }
+
+        .legal-title {
+            font-size: 1.05rem; font-weight: 800;
+            color: #fff; margin-bottom: 12px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .legal-text {
+            font-size: 0.88rem; line-height: 2;
+            color: rgba(255,255,255,0.75); font-weight: 300;
+        }
+
+        .legal-text strong { color: #fff; font-weight: 700; }
+
+        .legal-list {
+            list-style: none; padding: 0; margin: 12px 0;
+        }
+        .legal-list li {
+            display: flex; align-items: flex-start; gap: 10px;
+            font-size: 0.88rem; line-height: 2; color: rgba(255,255,255,0.75);
+            padding: 4px 0;
+        }
+        .legal-list li::before {
+            content: '●'; color: var(--red); font-size: 0.5rem;
+            margin-top: 10px; flex-shrink: 0;
+        }
+
+        /* FOOTER */
+        .footer-links-bar {
+            border-top: 1px solid var(--border); padding: 24px 5%;
+            display: flex; align-items: center; justify-content: center;
+            flex-wrap: wrap; gap: 8px 20px;
+        }
+        .footer-link-item {
+            color: var(--text-muted); text-decoration: none;
+            font-size: 0.82rem; font-weight: 500; transition: color 0.2s;
+        }
+        .footer-link-item:hover { color: var(--red); }
+        .footer-link-item.active-page { color: var(--red); font-weight: 700; }
+        .footer-sep { color: rgba(255,255,255,0.15); }
+
+        .footer-bottom {
+            border-top: 1px solid var(--border); padding: 20px 5%;
+            display: flex; justify-content: space-between; align-items: center;
+            flex-wrap: wrap; gap: 12px;
+        }
+        .footer-copy { color: var(--text-muted); font-size: 0.78rem; }
+        .footer-license {
+            background: var(--red-dim); border: 1px solid rgba(239,35,60,0.2);
+            color: var(--red); font-size: 0.72rem; padding: 6px 14px; border-radius: 100px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<header class="navbar">
+    <a href="index.html" class="logo-link">
+        <img src="logo.png" style="height:42px;width:auto;" alt="الأول للاستثمار">
+        <div>
+            <span class="company-name">الأول للاستثمار</span>
+            <span class="company-sub">SAB INVEST</span>
+        </div>
+    </a>
+    <a href="index.html" class="back-btn">← الرئيسية</a>
+</header>
+
+<!-- HERO -->
+<section class="page-hero">
+    <div class="page-badge">المعلومات القانونية</div>
+    <h1 class="page-title" id="pageTitle">بيان إخلاء المسؤولية</h1>
+</section>
+
+<!-- TABS -->
+<div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab('disclaimer', this)">بيان إخلاء المسؤولية</button>
+    <button class="tab-btn" onclick="switchTab('privacy', this)">سرية المعلومات</button>
+</div>
+
+<!-- ═══════ TAB 1: بيان إخلاء المسؤولية ═══════ -->
+<div class="tab-pane active" id="pane-disclaimer">
+<div class="content-wrap">
+
+    <div class="legal-section">
+        <p class="legal-text">
+            تنطبق شروط هذا التنويه على هذا الموقع <strong>https://sab-invest-vip.netlify.app/</strong> من شركة الأول للاستثمار، المملكة العربية السعودية. يرجى قراءة هذا التنويه بعناية.
+        </p>
+        <br>
+        <p class="legal-text">
+            بالدخول إلى هذا الموقع و/أو استخدام المعلومات المزودة على أو عبر هذا الموقع فإنك توافق على الالتزام بهذا التنويه. في حالة وجود أي تعارض بين أحكام وشروط منتجات وخدمات معينة وهذا التنويه، فإن الشروط المحددة لمثل هذه المنتجات والخدمات تكون السائدة.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">استخدام هذا الموقع</div>
+        <p class="legal-text">
+            المعلومات المزودة على أو عبر هذا الموقع لا ينبغي أن تستخدم كبديل عن أي شكل من أشكال المشورة. القرارات المبنية على هذه المعلومات هي لحسابك ومخاطرك. على الرغم من محاولة الأول للاستثمار تقديم معلومات دقيقة وكاملة وحديثة تم الحصول عليها من مصادر تعتبر موثوقة، فإن الأول للاستثمار لا تقدم أي ضمانات أو مزاعم، صريحة أو ضمنية، بأن المعلومات المزودة على أو عبر هذا الموقع دقيقة وكاملة وحديثة.
+        </p>
+        <br>
+        <p class="legal-text">
+            الأول للاستثمار تدير وتحافظ على هذا الموقع من الرياض، المملكة العربية السعودية، ولا تقدم أية مزاعم أن المعلومات المقدمة على أو عبر هذا الموقع مناسبة أو متوفرة للاستعمال في أماكن أخرى. إذا كنت تستخدم هذا الموقع من أماكن أخرى، فأنت مسؤول عن التقيد بالقوانين المحلية المعمول بها.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">معلومات ومنتجات وخدمات الطرف الثالث</div>
+        <p class="legal-text">
+            حيثما توفر الأول للاستثمار روابط تشعبية إلى مواقع طرف ثالث على الإنترنت، فإن مثل هذه الروابط ليست مصادقة من الأول للاستثمار على أية منتجات أو خدمات مقدمة على أو عبر مثل هذه المواقع. استخدام مثل هذه الروابط هو على مسؤوليتك الخاصة بشكل كلي.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">الملكية الفكرية</div>
+        <p class="legal-text">
+            تحتفظ الأول للاستثمار بجميع الحقوق (بما في ذلك حقوق التأليف والنشر، العلامات التجارية، براءات الاختراع، فضلاً عن أي حق من حقوق الملكية الفكرية الأخرى) فيما يتعلق بجميع المعلومات المقدمة على أو عبر هذا الموقع. لا يحق لك نسخ أو تنزيل أو نشر أو توزيع أو إعادة إنتاج أي من المعلومات الواردة على هذا الموقع بأي شكل من الأشكال دون موافقة خطية مسبقة من الأول للاستثمار.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">الاتصالات عبر الإنترنت</div>
+        <p class="legal-text">
+            الرسائل التي ترسلها إلى الأول للاستثمار عن طريق البريد الإلكتروني قد لا تكون آمنة لذلك تنصح الأول للاستثمار بعدم إرسال أية معلومات سرية إلى الأول للاستثمار عن طريق البريد الإلكتروني.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">إخلاء المسؤولية</div>
+        <p class="legal-text">
+            لا تتحمل الأول للاستثمار أو أي من وكلائها أو المتعاقدين معها أية مسؤولية عن أية أضرار مباشرة أو غير مباشرة أو خاصة أو عرضية أو تبعية أو جزائية أو تحذيرية بما في ذلك خسارة الأرباح التي تنشأ بأية طريقة من استخدام هذا الموقع.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">القانون المطبق</div>
+        <p class="legal-text">
+            يخضع هذا الموقع والتنويه المرتبط به لقوانين المملكة العربية السعودية ويفسر بموجبها. يجب تقديم جميع المنازعات الناشئة عن أو المرتبطة بهذا التنويه إلى الاختصاص القضائي الحصري لمحاكم المملكة العربية السعودية.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">التعديلات</div>
+        <p class="legal-text">
+            تحتفظ الأول للاستثمار بالحق لتغيير المعلومات المقدمة على أو عبر هذا الموقع بما في ذلك بنود هذا التنويه في أي وقت ودون سابق إنذار.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">بيان الخصوصية</div>
+        <p class="legal-text">
+            يدار هذا الموقع من قبل الأول للاستثمار، المملكة العربية السعودية. عند زيارة هذا الموقع، قد تقوم الأول للاستثمار بجمع البيانات الشخصية عنك إما مباشرة أو بشكل غير مباشر. وتلتزم بحماية المعلومات الشخصية التي يتم جمعها.
+        </p>
+        <br>
+        <p class="legal-text">
+            للتواصل معنا:
+            <br>الهاتف المجاني: <strong>٢٤٤٢-١٢٤-٨٠٠</strong>
+            <br>من خارج المملكة العربية السعودية: <strong>٣٧٢٠-٢٨١-١-٩٦٦+</strong>
+            <br>البريد الإلكتروني: <strong>sabinvestksa@gmail.com</strong>
+        </p>
+    </div>
+
+</div>
+</div>
+
+<!-- ═══════ TAB 2: سرية المعلومات ═══════ -->
+<div class="tab-pane" id="pane-privacy">
+<div class="content-wrap">
+
+    <div class="legal-section">
+        <p class="legal-text">
+            المعلومات هي حجر الزاوية في قدرتنا على تقديم خدمات متفوقة. ومع ذلك، فإن الأولوية الأهم بالنسبة لنا هي ثقة العملاء التي تتحقق عن طريق المحافظة على سرية معلومات العملاء واستخدامها فقط حسب رغبة عملائنا.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">التزاماتنا تجاه عملائنا</div>
+        <ul class="legal-list">
+            <li>نصون أية معلومات يزودنا بها عملاؤنا وفقاً لمعايير صارمة من الأمان والسرية.</li>
+            <li>نقلل جمع واستخدام معلومات العملاء إلى الحد الأدنى الذي نحتاجه لتوفير الخدمات الفائقة لعملائنا.</li>
+            <li>نسمح للموظفين المصرح لهم فقط، والذين يتم تدريبهم في التعامل السليم مع معلومات العملاء، في الحصول على تلك المعلومات.</li>
+            <li>لا نكشف عن معلومات العميل إلى أي طرف خارجي ما لم نقم بإشعار العميل مسبقاً أو تم السماح لنا من قبل العميل أو تطلب القانون ذلك.</li>
+            <li>نقوم بإعلام العملاء بلغة واضحة في البداية ومرة واحدة في السنة على الأقل عن كيفية إزالة أسمائهم من قوائم التسويق.</li>
+            <li>نسعى لإبقاء ملفات العملاء كاملة وحديثة ودقيقة.</li>
+            <li>نعمل على تقييم أنفسنا باستمرار لضمان احترام مبادئ خدمة العملاء.</li>
+        </ul>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">خدمة الاستعلام</div>
+        <p class="legal-text">
+            خدمة الاستعلام متاحة (24×7×365). أما في حالة الصيانة الدورية للنظام والتي تستدعي توقف الخدمة، سيتم إبلاغ العملاء قبل البدء بوقت كافٍ.
+        </p>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">حقوق العميل</div>
+        <ul class="legal-list">
+            <li>بإمكان العميل القيام بالعمليات المالية بشرط كون حسابه نشط وهويته سارية المفعول.</li>
+            <li>بإمكان العميل تقديم شكوى لوحدة العناية بالعملاء عبر الموقع أو الهاتف المصرفي: <strong>8001242442</strong>.</li>
+            <li>من خارج المملكة: <strong>00966112766345</strong></li>
+        </ul>
+    </div>
+
+    <div class="legal-section">
+        <div class="legal-title">حماية الدخول</div>
+        <p class="legal-text">
+            لحماية العملاء سيقوم البنك بإيقاف دخول العميل للموقع عند محاولة الدخول لثلاث مرات متتالية برقم سري خاطئ، ويستطيع العميل تنشيط دخوله مرة أخرى بالاتصال بالهاتف المصرفي <strong>8001242442</strong>.
+        </p>
+    </div>
+
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer-links-bar">
+    <a href="legal.html?tab=disclaimer" class="footer-link-item active-page">بيان إخلاء مسؤولية</a>
+    <span class="footer-sep">|</span>
+    <a href="legal.html?tab=privacy" class="footer-link-item">سرية المعلومات</a>
+    <span class="footer-sep">|</span>
+    <a href="sabinvestcustomerpolicy.pdf" target="_blank" class="footer-link-item">سياسة الخصوصية لعملاء الأول للاستثمار</a>
+    <span class="footer-sep">|</span>
+    <a href="sab_invest_privacy_statement 2.pdf" target="_blank" class="footer-link-item">بيان الخصوصية</a>
+</div>
+<footer class="footer-bottom">
+    <div style="display:flex;align-items:center;gap:10px;">
+        <div style="width:32px;height:32px;background:var(--red);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:0.9rem;">أ</div>
+        <span style="font-size:0.85rem;color:#666;">الأول للاستثمار © 2025</span>
+    </div>
+    <span class="footer-copy">جميع الحقوق محفوظة</span>
+    <span class="footer-license">ترخيص 07079-37</span>
+</footer>
+
+<script>
+function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('pane-' + id).classList.add('active');
+    btn.classList.add('active');
+    const titles = { disclaimer: 'بيان إخلاء المسؤولية', privacy: 'سرية المعلومات' };
+    document.getElementById('pageTitle').textContent = titles[id];
+    // Update active footer link
+    document.querySelectorAll('.footer-link-item').forEach(l => l.classList.remove('active-page'));
+    if (id === 'disclaimer') document.querySelector('[href="legal.html?tab=disclaimer"]')?.classList.add('active-page');
+    if (id === 'privacy')    document.querySelector('[href="legal.html?tab=privacy"]')?.classList.add('active-page');
+}
+
+// Open correct tab based on URL param
+const params = new URLSearchParams(window.location.search);
+const tab = params.get('tab');
+if (tab === 'privacy') {
+    switchTab('privacy', document.querySelectorAll('.tab-btn')[1]);
+}
+</script>
+
+</body>
+</html>

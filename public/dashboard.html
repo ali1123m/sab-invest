@@ -760,7 +760,7 @@
 <div class="main-layout">
 
     <div class="markets-panel">
-        <div class="panel-header"><span class="panel-title" id="markets-title">الأسواق</span></div>
+        <div class="panel-header"><span class="panel-title" id="markets-title">الأسواق</span><span style="margin-right:auto;color:var(--muted);font-size:.68rem">70+ Markets</span></div>
         <div class="search-bar"><span>🔍</span><input type="text" id="searchInput" placeholder="ابحث..."></div>
         <div class="category-tabs">
             <button class="cat-tab active" data-cat="all">الكل</button>
@@ -1597,64 +1597,125 @@ function setTF(tf,el){currentTF=tf;document.querySelectorAll('.tf-btn').forEach(
 // ════ INSTRUMENTS ════
 const instruments=[
     // ── FOREX ──
-    {name:'EUR/USD',full:'يورو / دولار أمريكي',fullEn:'EUR/USD',symbol:'FX:EURUSD',cat:'forex',buy:'1.08334',sell:'1.08318',chg:'+3.1',up:true},
-    {name:'GBP/USD',full:'جنيه / دولار',fullEn:'GBP/USD',symbol:'FX:GBPUSD',cat:'forex',buy:'1.27421',sell:'1.27405',chg:'-1.4',up:false},
-    {name:'USD/JPY',full:'دولار / ين ياباني',fullEn:'USD/JPY',symbol:'FX:USDJPY',cat:'forex',buy:'148.230',sell:'148.215',chg:'-0.8',up:false},
-    {name:'USD/CHF',full:'دولار / فرنك سويسري',fullEn:'USD/CHF',symbol:'FX:USDCHF',cat:'forex',buy:'0.90234',sell:'0.90218',chg:'+0.3',up:true},
-    {name:'AUD/USD',full:'دولار أسترالي / دولار',fullEn:'AUD/USD',symbol:'FX:AUDUSD',cat:'forex',buy:'0.65421',sell:'0.65405',chg:'+0.7',up:true},
-    {name:'USD/CAD',full:'دولار / كندي',fullEn:'USD/CAD',symbol:'FX:USDCAD',cat:'forex',buy:'1.36420',sell:'1.36405',chg:'-0.5',up:false},
-    {name:'NZD/USD',full:'نيوزيلندي / دولار',fullEn:'NZD/USD',symbol:'FX:NZDUSD',cat:'forex',buy:'0.61234',sell:'0.61218',chg:'+0.2',up:true},
-    {name:'EUR/JPY',full:'يورو / ين',fullEn:'EUR/JPY',symbol:'FX:EURJPY',cat:'forex',buy:'160.234',sell:'160.218',chg:'+1.2',up:true},
-    {name:'GBP/JPY',full:'جنيه / ين',fullEn:'GBP/JPY',symbol:'FX:GBPJPY',cat:'forex',buy:'188.432',sell:'188.410',chg:'-0.6',up:false},
-    {name:'EUR/GBP',full:'يورو / جنيه',fullEn:'EUR/GBP',symbol:'FX:EURGBP',cat:'forex',buy:'0.85234',sell:'0.85218',chg:'+0.1',up:true},
-    {name:'USD/TRY',full:'دولار / ليرة تركية',fullEn:'USD/TRY',symbol:'FX:USDTRY',cat:'forex',buy:'32.145',sell:'32.128',chg:'+0.05',up:true},
-    {name:'USD/SAR',full:'دولار / ريال سعودي',fullEn:'USD/SAR',symbol:'FX:USDSAR',cat:'forex',buy:'3.7510',sell:'3.7505',chg:'0.000',up:true},
-    {name:'USD/AED',full:'دولار / درهم إماراتي',fullEn:'USD/AED',symbol:'FX:USDAED',cat:'forex',buy:'3.6728',sell:'3.6724',chg:'0.000',up:true},
+    {name:'EUR/USD',full:'يورو / دولار أمريكي',fullEn:'EUR/USD',symbol:'FX:EURUSD',cat:'forex',buy:'1.0833',sell:'1.0831',chg:'+0.00',up:true},
+    {name:'GBP/USD',full:'جنيه / دولار',fullEn:'GBP/USD',symbol:'FX:GBPUSD',cat:'forex',buy:'1.2742',sell:'1.2740',chg:'+0.00',up:true},
+    {name:'USD/JPY',full:'دولار / ين ياباني',fullEn:'USD/JPY',symbol:'FX:USDJPY',cat:'forex',buy:'148.23',sell:'148.20',chg:'+0.00',up:true},
+    {name:'USD/CHF',full:'دولار / فرنك سويسري',fullEn:'USD/CHF',symbol:'FX:USDCHF',cat:'forex',buy:'0.90234',sell:'0.90144',chg:'+0.00',up:true},
+    {name:'AUD/USD',full:'دولار أسترالي / دولار',fullEn:'AUD/USD',symbol:'FX:AUDUSD',cat:'forex',buy:'0.65421',sell:'0.65356',chg:'+0.00',up:true},
+    {name:'USD/CAD',full:'دولار / كندي',fullEn:'USD/CAD',symbol:'FX:USDCAD',cat:'forex',buy:'1.3642',sell:'1.3639',chg:'+0.00',up:true},
+    {name:'NZD/USD',full:'نيوزيلندي / دولار',fullEn:'NZD/USD',symbol:'FX:NZDUSD',cat:'forex',buy:'0.61234',sell:'0.61173',chg:'+0.00',up:true},
+    {name:'EUR/JPY',full:'يورو / ين',fullEn:'EUR/JPY',symbol:'FX:EURJPY',cat:'forex',buy:'160.58',sell:'160.55',chg:'+0.00',up:true},
+    {name:'GBP/JPY',full:'جنيه / ين',fullEn:'GBP/JPY',symbol:'FX:GBPJPY',cat:'forex',buy:'188.43',sell:'188.39',chg:'+0.00',up:true},
+    {name:'EUR/GBP',full:'يورو / جنيه',fullEn:'EUR/GBP',symbol:'FX:EURGBP',cat:'forex',buy:'0.85234',sell:'0.85149',chg:'+0.00',up:true},
+    {name:'USD/TRY',full:'دولار / ليرة تركية',fullEn:'USD/TRY',symbol:'FX:USDTRY',cat:'forex',buy:'32.145',sell:'32.139',chg:'+0.00',up:true},
+    {name:'USD/SAR',full:'دولار / ريال سعودي',fullEn:'USD/SAR',symbol:'FX:USDSAR',cat:'forex',buy:'3.7510',sell:'3.7502',chg:'+0.00',up:true},
+    {name:'USD/AED',full:'دولار / درهم إماراتي',fullEn:'USD/AED',symbol:'FX:USDAED',cat:'forex',buy:'3.6728',sell:'3.6721',chg:'+0.00',up:true},
+    {name:'USD/CNH',full:'دولار / يوان صيني',fullEn:'USD/CNH',symbol:'FX:USDCNH',cat:'forex',buy:'7.2250',sell:'7.2236',chg:'+0.00',up:true},
+    {name:'USD/MXN',full:'دولار / بيزو مكسيكي',fullEn:'USD/MXN',symbol:'FX:USDMXN',cat:'forex',buy:'16.850',sell:'16.847',chg:'+0.00',up:true},
+    {name:'EUR/CHF',full:'يورو / فرنك',fullEn:'EUR/CHF',symbol:'FX:EURCHF',cat:'forex',buy:'0.97650',sell:'0.97552',chg:'+0.00',up:true},
+    {name:'AUD/JPY',full:'أسترالي / ين',fullEn:'AUD/JPY',symbol:'FX:AUDJPY',cat:'forex',buy:'97.120',sell:'97.101',chg:'+0.00',up:true},
+    {name:'CAD/JPY',full:'كندي / ين',fullEn:'CAD/JPY',symbol:'FX:CADJPY',cat:'forex',buy:'108.52',sell:'108.50',chg:'+0.00',up:true},
+    {name:'CHF/JPY',full:'فرنك / ين',fullEn:'CHF/JPY',symbol:'FX:CHFJPY',cat:'forex',buy:'166.20',sell:'166.17',chg:'+0.00',up:true},
+    {name:'GBP/CHF',full:'جنيه / فرنك',fullEn:'GBP/CHF',symbol:'FX:GBPCHF',cat:'forex',buy:'1.1380',sell:'1.1378',chg:'+0.00',up:true},
+    {name:'EUR/AUD',full:'يورو / أسترالي',fullEn:'EUR/AUD',symbol:'FX:EURAUD',cat:'forex',buy:'1.6550',sell:'1.6547',chg:'+0.00',up:true},
     // ── CRYPTO ──
-    {name:'BTC/USD',full:'بيتكوين / دولار',fullEn:'Bitcoin',symbol:'COINBASE:BTCUSD',cat:'crypto',buy:'94,213',sell:'94,185',chg:'+412',up:true},
-    {name:'ETH/USD',full:'إيثيريوم / دولار',fullEn:'Ethereum',symbol:'COINBASE:ETHUSD',cat:'crypto',buy:'3,241',sell:'3,238',chg:'-18',up:false},
-    {name:'SOL/USD',full:'سولانا / دولار',fullEn:'Solana',symbol:'COINBASE:SOLUSD',cat:'crypto',buy:'187.45',sell:'187.21',chg:'+3.4',up:true},
-    {name:'XRP/USD',full:'ريبل / دولار',fullEn:'XRP',symbol:'COINBASE:XRPUSD',cat:'crypto',buy:'0.6234',sell:'0.6218',chg:'-1.2',up:false},
-    {name:'BNB/USD',full:'بينانس كوين / دولار',fullEn:'BNB',symbol:'BINANCE:BNBUSDT',cat:'crypto',buy:'415.20',sell:'414.80',chg:'+2.3',up:true},
-    {name:'ADA/USD',full:'كاردانو / دولار',fullEn:'Cardano',symbol:'COINBASE:ADAUSD',cat:'crypto',buy:'0.4532',sell:'0.4518',chg:'-0.8',up:false},
-    {name:'DOGE/USD',full:'دوجكوين / دولار',fullEn:'Dogecoin',symbol:'COINBASE:DOGEUSD',cat:'crypto',buy:'0.1834',sell:'0.1818',chg:'+4.5',up:true},
-    {name:'AVAX/USD',full:'أفالانش / دولار',fullEn:'Avalanche',symbol:'COINBASE:AVAXUSD',cat:'crypto',buy:'38.42',sell:'38.28',chg:'+1.2',up:true},
-    {name:'LINK/USD',full:'تشينلينك / دولار',fullEn:'Chainlink',symbol:'COINBASE:LINKUSD',cat:'crypto',buy:'18.45',sell:'18.32',chg:'+0.6',up:true},
+    {name:'BTC/USD',full:'بيتكوين / دولار',fullEn:'Bitcoin',symbol:'COINBASE:BTCUSD',cat:'crypto',buy:'94,213.00',sell:'94,194.16',chg:'+0.00',up:true},
+    {name:'ETH/USD',full:'إيثيريوم / دولار',fullEn:'Ethereum',symbol:'COINBASE:ETHUSD',cat:'crypto',buy:'3,241.00',sell:'3,240.35',chg:'+0.00',up:true},
+    {name:'SOL/USD',full:'سولانا / دولار',fullEn:'Solana',symbol:'COINBASE:SOLUSD',cat:'crypto',buy:'187.45',sell:'187.41',chg:'+0.00',up:true},
+    {name:'XRP/USD',full:'ريبل / دولار',fullEn:'XRP',symbol:'COINBASE:XRPUSD',cat:'crypto',buy:'0.62340',sell:'0.62278',chg:'+0.00',up:true},
+    {name:'BNB/USD',full:'بينانس كوين / دولار',fullEn:'BNB',symbol:'BINANCE:BNBUSDT',cat:'crypto',buy:'415.20',sell:'415.12',chg:'+0.00',up:true},
+    {name:'ADA/USD',full:'كاردانو / دولار',fullEn:'Cardano',symbol:'COINBASE:ADAUSD',cat:'crypto',buy:'0.45320',sell:'0.45275',chg:'+0.00',up:true},
+    {name:'DOGE/USD',full:'دوجكوين / دولار',fullEn:'Dogecoin',symbol:'COINBASE:DOGEUSD',cat:'crypto',buy:'0.18340',sell:'0.18322',chg:'+0.00',up:true},
+    {name:'AVAX/USD',full:'أفالانش / دولار',fullEn:'Avalanche',symbol:'COINBASE:AVAXUSD',cat:'crypto',buy:'38.420',sell:'38.412',chg:'+0.00',up:true},
+    {name:'LINK/USD',full:'تشينلينك / دولار',fullEn:'Chainlink',symbol:'COINBASE:LINKUSD',cat:'crypto',buy:'16.420',sell:'16.417',chg:'+0.00',up:true},
+    {name:'LTC/USD',full:'لايتكوين / دولار',fullEn:'Litecoin',symbol:'COINBASE:LTCUSD',cat:'crypto',buy:'82.300',sell:'82.284',chg:'+0.00',up:true},
+    {name:'DOT/USD',full:'بولكادوت / دولار',fullEn:'Polkadot',symbol:'COINBASE:DOTUSD',cat:'crypto',buy:'6.8500',sell:'6.8486',chg:'+0.00',up:true},
+    {name:'MATIC/USD',full:'بوليجون / دولار',fullEn:'Polygon',symbol:'COINBASE:MATICUSD',cat:'crypto',buy:'0.72000',sell:'0.71928',chg:'+0.00',up:true},
+    {name:'UNI/USD',full:'يونيسواب / دولار',fullEn:'Uniswap',symbol:'COINBASE:UNIUSD',cat:'crypto',buy:'9.2500',sell:'9.2482',chg:'+0.00',up:true},
+    {name:'AAVE/USD',full:'آفي / دولار',fullEn:'Aave',symbol:'COINBASE:AAVEUSD',cat:'crypto',buy:'95.200',sell:'95.181',chg:'+0.00',up:true},
+    {name:'BCH/USD',full:'بيتكوين كاش / دولار',fullEn:'Bitcoin Cash',symbol:'COINBASE:BCHUSD',cat:'crypto',buy:'430.50',sell:'430.41',chg:'+0.00',up:true},
+    {name:'TRX/USD',full:'ترون / دولار',fullEn:'TRON',symbol:'BINANCE:TRXUSDT',cat:'crypto',buy:'0.11900',sell:'0.11888',chg:'+0.00',up:true},
     // ── COMMODITIES ──
-    {name:'XAU/USD',full:'الذهب / دولار',fullEn:'Gold / USD',symbol:'TVC:GOLD',cat:'commodities',buy:'4,629.51',sell:'4,628.03',chg:'-8.2',up:false},
-    {name:'XAG/USD',full:'الفضة / دولار',fullEn:'Silver / USD',symbol:'TVC:SILVER',cat:'commodities',buy:'32.845',sell:'32.821',chg:'+0.4',up:true},
-    {name:'XPT/USD',full:'البلاتين / دولار',fullEn:'Platinum',symbol:'TVC:PLATINUM',cat:'commodities',buy:'925.40',sell:'924.80',chg:'-2.1',up:false},
-    {name:'XPD/USD',full:'البلاديوم / دولار',fullEn:'Palladium',symbol:'TVC:PALLADIUM',cat:'commodities',buy:'1024.50',sell:'1023.80',chg:'+5.3',up:true},
-    {name:'WTI',full:'نفط خام WTI',fullEn:'WTI Crude Oil',symbol:'TVC:USOIL',cat:'commodities',buy:'78.432',sell:'78.398',chg:'-1.2',up:false},
-    {name:'BRENT',full:'نفط برنت',fullEn:'Brent Crude',symbol:'TVC:UKOIL',cat:'commodities',buy:'82.340',sell:'82.310',chg:'-0.9',up:false},
-    {name:'NAT GAS',full:'الغاز الطبيعي',fullEn:'Natural Gas',symbol:'TVC:NATGAS',cat:'commodities',buy:'2.342',sell:'2.338',chg:'+0.05',up:true},
-    {name:'COPPER',full:'النحاس',fullEn:'Copper',symbol:'TVC:COPPER',cat:'commodities',buy:'4.245',sell:'4.238',chg:'+0.02',up:true},
+    {name:'GOLD',full:'الذهب',fullEn:'Gold',symbol:'TVC:GOLD',cat:'commodities',buy:'4,691.39',sell:'4,690.45',chg:'+0.00',up:true},
+    {name:'SILVER',full:'الفضة',fullEn:'Silver',symbol:'TVC:SILVER',cat:'commodities',buy:'31.245',sell:'31.239',chg:'+0.00',up:true},
+    {name:'PLATINUM',full:'البلاتين',fullEn:'Platinum',symbol:'TVC:PLATINUM',cat:'commodities',buy:'945.20',sell:'945.01',chg:'+0.00',up:true},
+    {name:'PALLADIUM',full:'البلاديوم',fullEn:'Palladium',symbol:'TVC:PALLADIUM',cat:'commodities',buy:'1,025.80',sell:'1,025.59',chg:'+0.00',up:true},
+    {name:'USOIL',full:'النفط الأمريكي',fullEn:'WTI Crude Oil',symbol:'TVC:USOIL',cat:'commodities',buy:'78.450',sell:'78.434',chg:'+0.00',up:true},
+    {name:'UKOIL',full:'برنت',fullEn:'Brent Oil',symbol:'TVC:UKOIL',cat:'commodities',buy:'82.340',sell:'82.324',chg:'+0.00',up:true},
+    {name:'NATGAS',full:'الغاز الطبيعي',fullEn:'Natural Gas',symbol:'TVC:NATGAS',cat:'commodities',buy:'2.3420',sell:'2.3415',chg:'+0.00',up:true},
+    {name:'COPPER',full:'النحاس',fullEn:'Copper',symbol:'TVC:COPPER',cat:'commodities',buy:'4.2450',sell:'4.2442',chg:'+0.00',up:true},
+    {name:'COFFEE',full:'القهوة',fullEn:'Coffee',symbol:'ICEUS:KC1!',cat:'commodities',buy:'225.10',sell:'225.05',chg:'+0.00',up:true},
+    {name:'COCOA',full:'الكاكاو',fullEn:'Cocoa',symbol:'ICEUS:CC1!',cat:'commodities',buy:'7,950.00',sell:'7,948.41',chg:'+0.00',up:true},
+    {name:'SUGAR',full:'السكر',fullEn:'Sugar',symbol:'ICEUS:SB1!',cat:'commodities',buy:'19.850',sell:'19.846',chg:'+0.00',up:true},
+    {name:'CORN',full:'الذرة',fullEn:'Corn',symbol:'CBOT:ZC1!',cat:'commodities',buy:'462.25',sell:'462.16',chg:'+0.00',up:true},
+    {name:'WHEAT',full:'القمح',fullEn:'Wheat',symbol:'CBOT:ZW1!',cat:'commodities',buy:'598.50',sell:'598.38',chg:'+0.00',up:true},
+    {name:'SOYBEAN',full:'فول الصويا',fullEn:'Soybeans',symbol:'CBOT:ZS1!',cat:'commodities',buy:'1,210.25',sell:'1,210.01',chg:'+0.00',up:true},
+    {name:'COTTON',full:'القطن',fullEn:'Cotton',symbol:'ICEUS:CT1!',cat:'commodities',buy:'78.200',sell:'78.184',chg:'+0.00',up:true},
+    {name:'GASOLINE',full:'البنزين',fullEn:'Gasoline',symbol:'NYMEX:RB1!',cat:'commodities',buy:'2.4510',sell:'2.4505',chg:'+0.00',up:true},
     // ── INDICES ──
-    {name:'US30',full:'داو جونز',fullEn:'Dow Jones',symbol:'TVC:DJI',cat:'indices',buy:'38,245',sell:'38,230',chg:'+45',up:true},
-    {name:'SPX500',full:'S&P 500',fullEn:'S&P 500',symbol:'TVC:SPX',cat:'indices',buy:'5,112',sell:'5,110',chg:'+12',up:true},
-    {name:'NAS100',full:'ناسداك 100',fullEn:'Nasdaq 100',symbol:'TVC:NDX',cat:'indices',buy:'17,845',sell:'17,838',chg:'+28',up:true},
-    {name:'VIX',full:'مؤشر التقلب',fullEn:'Volatility Index',symbol:'TVC:VIX',cat:'indices',buy:'14.32',sell:'14.28',chg:'-0.4',up:false},
-    {name:'FTSE100',full:'فوتسي 100 بريطاني',fullEn:'FTSE 100',symbol:'TVC:UK100',cat:'indices',buy:'7,845',sell:'7,840',chg:'+18',up:true},
-    {name:'DAX',full:'داكس ألماني',fullEn:'DAX 40',symbol:'TVC:DEU40',cat:'indices',buy:'17,234',sell:'17,228',chg:'+34',up:true},
-    {name:'CAC40',full:'كاك 40 فرنسي',fullEn:'CAC 40',symbol:'TVC:FRA40',cat:'indices',buy:'7,934',sell:'7,928',chg:'+22',up:true},
-    {name:'NIKKEI',full:'نيكاي ياباني',fullEn:'Nikkei 225',symbol:'TVC:JPN225',cat:'indices',buy:'38,120',sell:'38,105',chg:'-85',up:false},
-    {name:'ASX200',full:'أسترالي 200',fullEn:'ASX 200',symbol:'TVC:AUS200',cat:'indices',buy:'7,612',sell:'7,608',chg:'+14',up:true},
-    {name:'HANG SENG',full:'هانغ سينغ',fullEn:'Hang Seng',symbol:'TVC:HSI',cat:'indices',buy:'17,245',sell:'17,238',chg:'-32',up:false},
-    {name:'EURO50',full:'يوروستوكس 50',fullEn:'Euro Stoxx 50',symbol:'TVC:EU50',cat:'indices',buy:'4,845',sell:'4,842',chg:'+12',up:true},
-    // ── STOCKS ──
-    {name:'AAPL',full:'أبل',fullEn:'Apple Inc.',symbol:'NASDAQ:AAPL',cat:'stocks',buy:'182.41',sell:'182.35',chg:'+1.2',up:true},
-    {name:'MSFT',full:'مايكروسوفت',fullEn:'Microsoft',symbol:'NASDAQ:MSFT',cat:'stocks',buy:'415.20',sell:'415.10',chg:'+2.1',up:true},
-    {name:'TSLA',full:'تيسلا',fullEn:'Tesla',symbol:'NASDAQ:TSLA',cat:'stocks',buy:'178.32',sell:'178.18',chg:'-3.4',up:false},
-    {name:'NVDA',full:'إنفيديا',fullEn:'NVIDIA',symbol:'NASDAQ:NVDA',cat:'stocks',buy:'875.45',sell:'875.25',chg:'+12.3',up:true},
-    {name:'META',full:'ميتا',fullEn:'Meta Platforms',symbol:'NASDAQ:META',cat:'stocks',buy:'512.34',sell:'512.20',chg:'+5.6',up:true},
-    {name:'AMZN',full:'أمازون',fullEn:'Amazon',symbol:'NASDAQ:AMZN',cat:'stocks',buy:'185.42',sell:'185.30',chg:'+2.8',up:true},
-    {name:'GOOGL',full:'جوجل',fullEn:'Alphabet',symbol:'NASDAQ:GOOGL',cat:'stocks',buy:'165.34',sell:'165.22',chg:'+1.9',up:true},
-    {name:'NFLX',full:'نتفليكس',fullEn:'Netflix',symbol:'NASDAQ:NFLX',cat:'stocks',buy:'628.45',sell:'628.20',chg:'+4.2',up:true},
-    {name:'AMD',full:'إيه إم دي',fullEn:'AMD',symbol:'NASDAQ:AMD',cat:'stocks',buy:'172.34',sell:'172.18',chg:'+3.1',up:true},
-    {name:'INTC',full:'إنتل',fullEn:'Intel',symbol:'NASDAQ:INTC',cat:'stocks',buy:'42.34',sell:'42.22',chg:'-0.8',up:false},
-    {name:'BABA',full:'علي بابا',fullEn:'Alibaba',symbol:'NYSE:BABA',cat:'stocks',buy:'78.45',sell:'78.32',chg:'-1.2',up:false},
-    {name:'JPM',full:'جيبي مورغان',fullEn:'JPMorgan',symbol:'NYSE:JPM',cat:'stocks',buy:'198.45',sell:'198.30',chg:'+1.4',up:true},
-    {name:'GS',full:'جولدمان ساكس',fullEn:'Goldman Sachs',symbol:'NYSE:GS',cat:'stocks',buy:'445.20',sell:'445.05',chg:'+2.3',up:true},
+    {name:'US30',full:'داو جونز',fullEn:'Dow Jones',symbol:'TVC:DJI',cat:'indices',buy:'38,245.00',sell:'38,237.35',chg:'+0.00',up:true},
+    {name:'SPX500',full:'S&P 500',fullEn:'S&P 500',symbol:'TVC:SPX',cat:'indices',buy:'5,112.00',sell:'5,110.98',chg:'+0.00',up:true},
+    {name:'NAS100',full:'ناسداك 100',fullEn:'Nasdaq 100',symbol:'TVC:NDX',cat:'indices',buy:'17,845.00',sell:'17,841.43',chg:'+0.00',up:true},
+    {name:'VIX',full:'مؤشر التقلب',fullEn:'Volatility Index',symbol:'TVC:VIX',cat:'indices',buy:'14.320',sell:'14.317',chg:'+0.00',up:true},
+    {name:'RUSSELL',full:'راسل 2000',fullEn:'Russell 2000',symbol:'TVC:RUT',cat:'indices',buy:'2,050.00',sell:'2,049.59',chg:'+0.00',up:true},
+    {name:'FTSE100',full:'فوتسي 100 بريطاني',fullEn:'FTSE 100',symbol:'TVC:UK100',cat:'indices',buy:'7,845.00',sell:'7,843.43',chg:'+0.00',up:true},
+    {name:'DAX',full:'داكس ألماني',fullEn:'DAX 40',symbol:'TVC:DEU40',cat:'indices',buy:'17,234.00',sell:'17,230.55',chg:'+0.00',up:true},
+    {name:'CAC40',full:'كاك 40 فرنسي',fullEn:'CAC 40',symbol:'TVC:FRA40',cat:'indices',buy:'7,934.00',sell:'7,932.41',chg:'+0.00',up:true},
+    {name:'NIKKEI',full:'نيكاي ياباني',fullEn:'Nikkei 225',symbol:'TVC:JPN225',cat:'indices',buy:'38,120.00',sell:'38,112.38',chg:'+0.00',up:true},
+    {name:'ASX200',full:'أسترالي 200',fullEn:'ASX 200',symbol:'TVC:AUS200',cat:'indices',buy:'7,612.00',sell:'7,610.48',chg:'+0.00',up:true},
+    {name:'HANG SENG',full:'هانغ سينغ',fullEn:'Hang Seng',symbol:'TVC:HSI',cat:'indices',buy:'17,245.00',sell:'17,241.55',chg:'+0.00',up:true},
+    {name:'EURO50',full:'يوروستوكس 50',fullEn:'Euro Stoxx 50',symbol:'TVC:EU50',cat:'indices',buy:'4,845.00',sell:'4,844.03',chg:'+0.00',up:true},
+    {name:'TSX',full:'تورونتو TSX',fullEn:'TSX Composite',symbol:'TSX:TSX',cat:'indices',buy:'22,140.00',sell:'22,135.57',chg:'+0.00',up:true},
+    {name:'KOSPI',full:'كوسبي الكوري',fullEn:'KOSPI',symbol:'KRX:KOSPI',cat:'indices',buy:'2,720.00',sell:'2,719.46',chg:'+0.00',up:true},
+    {name:'IBEX35',full:'إيبكس إسبانيا',fullEn:'IBEX 35',symbol:'BME:IBC',cat:'indices',buy:'11,050.00',sell:'11,047.79',chg:'+0.00',up:true},
+    {name:'SENSEX',full:'سينسيكس الهند',fullEn:'BSE Sensex',symbol:'BSE:SENSEX',cat:'indices',buy:'74,000.00',sell:'73,985.20',chg:'+0.00',up:true},
+    // ── US STOCKS ──
+    {name:'AAPL',full:'أبل',fullEn:'Apple Inc.',symbol:'NASDAQ:AAPL',cat:'stocks',buy:'182.41',sell:'182.37',chg:'+0.00',up:true},
+    {name:'MSFT',full:'مايكروسوفت',fullEn:'Microsoft',symbol:'NASDAQ:MSFT',cat:'stocks',buy:'424.18',sell:'424.10',chg:'+0.00',up:true},
+    {name:'TSLA',full:'تسلا',fullEn:'Tesla',symbol:'NASDAQ:TSLA',cat:'stocks',buy:'178.12',sell:'178.08',chg:'+0.00',up:true},
+    {name:'NVDA',full:'إنفيديا',fullEn:'NVIDIA',symbol:'NASDAQ:NVDA',cat:'stocks',buy:'875.30',sell:'875.12',chg:'+0.00',up:true},
+    {name:'META',full:'ميتا',fullEn:'Meta',symbol:'NASDAQ:META',cat:'stocks',buy:'510.42',sell:'510.32',chg:'+0.00',up:true},
+    {name:'AMZN',full:'أمازون',fullEn:'Amazon',symbol:'NASDAQ:AMZN',cat:'stocks',buy:'185.42',sell:'185.38',chg:'+0.00',up:true},
+    {name:'GOOGL',full:'جوجل',fullEn:'Alphabet',symbol:'NASDAQ:GOOGL',cat:'stocks',buy:'165.34',sell:'165.31',chg:'+0.00',up:true},
+    {name:'NFLX',full:'نتفليكس',fullEn:'Netflix',symbol:'NASDAQ:NFLX',cat:'stocks',buy:'628.45',sell:'628.32',chg:'+0.00',up:true},
+    {name:'AMD',full:'إيه إم دي',fullEn:'AMD',symbol:'NASDAQ:AMD',cat:'stocks',buy:'172.34',sell:'172.31',chg:'+0.00',up:true},
+    {name:'INTC',full:'إنتل',fullEn:'Intel',symbol:'NASDAQ:INTC',cat:'stocks',buy:'42.340',sell:'42.332',chg:'+0.00',up:true},
+    {name:'BABA',full:'علي بابا',fullEn:'Alibaba',symbol:'NYSE:BABA',cat:'stocks',buy:'78.450',sell:'78.434',chg:'+0.00',up:true},
+    {name:'JPM',full:'جيبي مورغان',fullEn:'JPMorgan',symbol:'NYSE:JPM',cat:'stocks',buy:'198.45',sell:'198.41',chg:'+0.00',up:true},
+    {name:'GS',full:'جولدمان ساكس',fullEn:'Goldman Sachs',symbol:'NYSE:GS',cat:'stocks',buy:'445.20',sell:'445.11',chg:'+0.00',up:true},
+    {name:'V',full:'فيزا',fullEn:'Visa',symbol:'NYSE:V',cat:'stocks',buy:'278.25',sell:'278.19',chg:'+0.00',up:true},
+    {name:'MA',full:'ماستركارد',fullEn:'Mastercard',symbol:'NYSE:MA',cat:'stocks',buy:'468.20',sell:'468.11',chg:'+0.00',up:true},
+    {name:'PYPL',full:'باي بال',fullEn:'PayPal',symbol:'NASDAQ:PYPL',cat:'stocks',buy:'64.400',sell:'64.387',chg:'+0.00',up:true},
+    {name:'CRM',full:'سيلزفورس',fullEn:'Salesforce',symbol:'NYSE:CRM',cat:'stocks',buy:'285.50',sell:'285.44',chg:'+0.00',up:true},
+    {name:'ORCL',full:'أوراكل',fullEn:'Oracle',symbol:'NYSE:ORCL',cat:'stocks',buy:'120.30',sell:'120.28',chg:'+0.00',up:true},
+    {name:'IBM',full:'آي بي إم',fullEn:'IBM',symbol:'NYSE:IBM',cat:'stocks',buy:'190.15',sell:'190.11',chg:'+0.00',up:true},
+    {name:'QCOM',full:'كوالكوم',fullEn:'Qualcomm',symbol:'NASDAQ:QCOM',cat:'stocks',buy:'178.44',sell:'178.40',chg:'+0.00',up:true},
+    {name:'AVGO',full:'برودكوم',fullEn:'Broadcom',symbol:'NASDAQ:AVGO',cat:'stocks',buy:'1,320.80',sell:'1,320.54',chg:'+0.00',up:true},
+    {name:'COST',full:'كوستكو',fullEn:'Costco',symbol:'NASDAQ:COST',cat:'stocks',buy:'735.10',sell:'734.95',chg:'+0.00',up:true},
+    {name:'DIS',full:'ديزني',fullEn:'Disney',symbol:'NYSE:DIS',cat:'stocks',buy:'112.35',sell:'112.33',chg:'+0.00',up:true},
+    {name:'BA',full:'بوينغ',fullEn:'Boeing',symbol:'NYSE:BA',cat:'stocks',buy:'188.65',sell:'188.61',chg:'+0.00',up:true},
+    {name:'WMT',full:'وولمارت',fullEn:'Walmart',symbol:'NYSE:WMT',cat:'stocks',buy:'60.450',sell:'60.438',chg:'+0.00',up:true},
+    {name:'PFE',full:'فايزر',fullEn:'Pfizer',symbol:'NYSE:PFE',cat:'stocks',buy:'28.150',sell:'28.144',chg:'+0.00',up:true},
+    {name:'KO',full:'كوكاكولا',fullEn:'Coca-Cola',symbol:'NYSE:KO',cat:'stocks',buy:'60.250',sell:'60.238',chg:'+0.00',up:true},
+    {name:'MCD',full:'ماكدونالدز',fullEn:'McDonald’s',symbol:'NYSE:MCD',cat:'stocks',buy:'285.70',sell:'285.64',chg:'+0.00',up:true},
+    {name:'NKE',full:'نايكي',fullEn:'Nike',symbol:'NYSE:NKE',cat:'stocks',buy:'94.100',sell:'94.081',chg:'+0.00',up:true},
+    {name:'UBER',full:'أوبر',fullEn:'Uber',symbol:'NYSE:UBER',cat:'stocks',buy:'72.600',sell:'72.585',chg:'+0.00',up:true},
+    // ── SAUDI STOCKS ──
+    {name:'2222',full:'أرامكو السعودية',fullEn:'Saudi Aramco',symbol:'TADAWUL:2222',cat:'saudi',buy:'33.100',sell:'33.093',chg:'+0.00',up:true},
+    {name:'1120',full:'مصرف الراجحي',fullEn:'Al Rajhi Bank',symbol:'TADAWUL:1120',cat:'saudi',buy:'88.400',sell:'88.382',chg:'+0.00',up:true},
+    {name:'1180',full:'البنك الأهلي السعودي',fullEn:'SNB',symbol:'TADAWUL:1180',cat:'saudi',buy:'38.200',sell:'38.192',chg:'+0.00',up:true},
+    {name:'2010',full:'سابك',fullEn:'SABIC',symbol:'TADAWUL:2010',cat:'saudi',buy:'78.700',sell:'78.684',chg:'+0.00',up:true},
+    {name:'7010',full:'إس تي سي',fullEn:'STC',symbol:'TADAWUL:7010',cat:'saudi',buy:'39.850',sell:'39.842',chg:'+0.00',up:true},
+    {name:'1211',full:'معادن',fullEn:'Maaden',symbol:'TADAWUL:1211',cat:'saudi',buy:'46.500',sell:'46.491',chg:'+0.00',up:true},
+    {name:'2082',full:'أكوا باور',fullEn:'ACWA Power',symbol:'TADAWUL:2082',cat:'saudi',buy:'245.00',sell:'244.95',chg:'+0.00',up:true},
+    {name:'1150',full:'مصرف الإنماء',fullEn:'Alinma Bank',symbol:'TADAWUL:1150',cat:'saudi',buy:'35.700',sell:'35.693',chg:'+0.00',up:true},
+    {name:'2280',full:'المراعي',fullEn:'Almarai',symbol:'TADAWUL:2280',cat:'saudi',buy:'56.200',sell:'56.189',chg:'+0.00',up:true},
+    {name:'1010',full:'بنك الرياض',fullEn:'Riyad Bank',symbol:'TADAWUL:1010',cat:'saudi',buy:'29.450',sell:'29.444',chg:'+0.00',up:true},
+    {name:'1050',full:'البنك السعودي الفرنسي',fullEn:'Banque Saudi Fransi',symbol:'TADAWUL:1050',cat:'saudi',buy:'41.100',sell:'41.092',chg:'+0.00',up:true},
+    {name:'1060',full:'البنك السعودي الأول',fullEn:'SAB Bank',symbol:'TADAWUL:1060',cat:'saudi',buy:'37.250',sell:'37.243',chg:'+0.00',up:true},
+    {name:'1080',full:'البنك العربي الوطني',fullEn:'Arab National Bank',symbol:'TADAWUL:1080',cat:'saudi',buy:'22.800',sell:'22.795',chg:'+0.00',up:true},
+    {name:'2020',full:'سابك للمغذيات',fullEn:'SABIC Agri-Nutrients',symbol:'TADAWUL:2020',cat:'saudi',buy:'118.60',sell:'118.58',chg:'+0.00',up:true},
+    {name:'2380',full:'بترو رابغ',fullEn:'Petro Rabigh',symbol:'TADAWUL:2380',cat:'saudi',buy:'8.7200',sell:'8.7183',chg:'+0.00',up:true},
 ];
 // Mark all initial prices as stale — simulation must wait for real data
 instruments.forEach(i => { i._stale = true; i._open = null; });
@@ -1719,6 +1780,55 @@ const livePriceCache = {};
 let sseSource = null;
 let sseRetryCount = 0;
 
+// ── Optional WebSocket fallback for servers that expose /ws instead of /stream ──
+let priceWS = null;
+function handlePriceMessage(msg) {
+    try {
+        if (!msg) return;
+        if (msg.type === 'snapshot' && msg.prices) {
+            let count = 0;
+            Object.entries(msg.prices).forEach(([tvSym, data]) => {
+                const inst = instruments.find(i => i.symbol === tvSym);
+                if (inst && data && data.price) {
+                    if (data.open && !inst._open) inst._open = data.open;
+                    applyRealPrice(inst, data.price, 'twelvedata-server');
+                    count++;
+                }
+            });
+            renderInstruments();
+            console.log(`📸 Snapshot: ${count} prices loaded`);
+            return;
+        }
+        if (msg.type === 'prices' && Array.isArray(msg.data)) {
+            msg.data.forEach(item => {
+                const tvSym = item.tvSym || item.symbol;
+                const inst = instruments.find(i => i.symbol === tvSym);
+                if (inst && item.price) applyRealPrice(inst, item.price, 'twelvedata-server');
+            });
+            return;
+        }
+        if (msg.symbol && msg.price) {
+            const inst = instruments.find(i => i.symbol === msg.symbol);
+            if (inst) applyRealPrice(inst, msg.price, 'twelvedata-server');
+        }
+    } catch(e) {}
+}
+function connectPriceWS(){
+    try {
+        if (priceWS && (priceWS.readyState === WebSocket.OPEN || priceWS.readyState === WebSocket.CONNECTING)) return;
+        const wsUrl = PRICE_SERVER.replace(/^https:/,'wss:').replace(/^http:/,'ws:') + '/ws';
+        console.log('🔌 Connecting to price websocket...');
+        priceWS = new WebSocket(wsUrl);
+        priceWS.onopen = () => console.log('✅ Price websocket connected');
+        priceWS.onmessage = (event) => {
+            try { handlePriceMessage(JSON.parse(event.data)); } catch(e) {}
+        };
+        priceWS.onclose = () => setTimeout(connectPriceWS, 5000);
+        priceWS.onerror = () => { try { priceWS.close(); } catch(e) {} };
+    } catch(e) {}
+}
+
+
 function connectSSE() {
     if (sseSource) { try { sseSource.close(); } catch(e) {} sseSource = null; }
 
@@ -1767,6 +1877,7 @@ function connectSSE() {
         console.warn(`⚠️ Stream disconnected — retry in ${delay/1000}s (attempt ${sseRetryCount})`);
         sseSource.close();
         sseSource = null;
+        if (sseRetryCount === 1) connectPriceWS();
         setTimeout(connectSSE, delay);
     };
 }
@@ -1802,11 +1913,8 @@ function smartSimulateTick(){
     });
 }
 
-// Start simulation after 15s (gives SSE time to deliver real prices)
-setTimeout(() => {
-    setInterval(smartSimulateTick, 2000);
-    console.log('⏱ Simulation started (covers any gaps in SSE data)');
-}, 15000);
+// Real prices only: simulation disabled.
+// Missing symbols stay with their last known/default value until Twelve Data returns data.
 
 // ════════════════════════════════════
 // applyRealPrice — core price applier
@@ -1837,7 +1945,7 @@ function applyRealPrice(inst, numPrice, source='unknown'){
     if(inst.symbol===currentSymbol) applyOrderFormPrice(newBuy, newSell);
 }
 
-function subscribeCurrentSymbol(){ fetchTVBatch([currentSymbol]); }
+function subscribeCurrentSymbol(){ /* prices stream from Twelve Data server handles updates */ }
 
 // ════ applyOrderFormPrice ════
 function applyOrderFormPrice(buyPrice,sellPrice){
