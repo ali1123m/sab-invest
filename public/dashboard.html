@@ -937,7 +937,7 @@
 
             <div style="display:flex;justify-content:space-between;padding:5px 14px 2px;font-size:0.68rem;color:var(--muted);">
                 <span>حجم التداول المتاح: <span id="calc-avail-oz" style="color:var(--text);font-family:var(--mono);">0 أوقية</span></span>
-                <span>الرافعة المالية: <span style="color:var(--text);font-family:var(--mono);">1:100</span></span>
+                <span>الرافعة المالية: <span id="calc-leverage" style="color:var(--text);font-family:var(--mono);">1:100</span></span>
             </div>
 
             <div style="margin:4px 14px 8px;background:rgba(245,166,35,0.06);border:1px solid rgba(245,166,35,0.18);border-radius:8px;padding:9px 12px;display:flex;justify-content:space-between;align-items:center;">
@@ -1096,7 +1096,7 @@ const _app=initializeApp(_cfg,'dashboard');
 const _db=getFirestore(_app);
 const _userId=sessionStorage.getItem('userId')||null;
 if(_userId){onSnapshot(doc(_db,'users',_userId),(snap)=>{if(!snap.exists())return;const data=snap.data();const newBal=Number(data.balance)||0;if(typeof account!=='undefined'&&newBal!==account.balance){account.balance=newBal;account.equity=Number(data.equity)||newBal;account.bonus=Number(data.bonus)||0;saveObj('account',account);if(typeof updateAccountDisplay==='function')updateAccountDisplay();/* Balance changes from admin sync silently — no client notification. */}if(data.status==='suspended'){showToast('⚠️ تم تعليق حسابك. تواصل مع الدعم.','#ef233c');}});}
-window._fbLogTrade=async function(pos,action){if(!_userId)return null;try{const ref=await addDoc(collection(_db,'trades'),{userId:_userId,symbol:pos.symbol,direction:pos.type==='buy'?'BUY':'SELL',lots:pos.lots,openPrice:pos.openPrice||pos.targetPrice||0,closePrice:pos.closePrice||null,sl:pos.sl||null,tp:pos.tp||null,leverage:100,pl:action==='close'?(pos.pnl||0):null,status:action==='close'?'closed':'open',openedAt:serverTimestamp(),closedAt:action==='close'?serverTimestamp():null,source:'client',orderType:pos.orderType||'market'});return ref.id;}catch(e){console.warn('FB trade log:',e.message);return null;}};
+window._fbLogTrade=async function(pos,action){if(!_userId)return null;try{let _lev=Number(pos.leverage)||0;if(!_lev){try{const _ai=window.getAssetInfo(pos._tvSym,pos.openPrice||pos.targetPrice||0);const _m=_ai.margin(1);if(_m>0)_lev=Math.round(_ai.notional(1)/_m);}catch(e){}}if(!_lev)_lev=100;const ref=await addDoc(collection(_db,'trades'),{userId:_userId,symbol:pos.symbol,direction:pos.type==='buy'?'BUY':'SELL',lots:pos.lots,openPrice:pos.openPrice||pos.targetPrice||0,closePrice:pos.closePrice||null,sl:pos.sl||null,tp:pos.tp||null,leverage:_lev,pl:action==='close'?(pos.pnl||0):null,status:action==='close'?'closed':'open',openedAt:serverTimestamp(),closedAt:action==='close'?serverTimestamp():null,source:'client',orderType:pos.orderType||'market'});return ref.id;}catch(e){console.warn('FB trade log:',e.message);return null;}};
 window._fbCloseTrade=async function(pos){if(!_userId)return;try{if(pos._fbRef){await updateDoc(doc(_db,'trades',pos._fbRef),{status:'closed',closePrice:pos.closePrice||null,pl:pos.pnl||0,closedAt:serverTimestamp()});}const userRef=doc(_db,'users',_userId);const snap=await getDoc(userRef);if(snap.exists()){const cur=snap.data();const newBal=Math.max(0,(Number(cur.balance)||0)+(pos.pnl||0));await updateDoc(userRef,{balance:newBal,equity:newBal});}}catch(e){console.warn('FB close trade:',e.message);}};
 window._fbLogWithdrawal=async function(amount,method){if(!_userId)return;try{await addDoc(collection(_db,'transactions'),{userId:_userId,type:'withdrawal',amount:amount,method:method==='bank'?'Bank Transfer':method==='card'?'Credit Card':'Digital Wallet',status:'pending',note:'Client withdrawal request',createdAt:serverTimestamp(),source:'client'});}catch(e){console.warn('FB withdrawal:',e.message);}};
 window._fbLogDeposit=async function(amount,method,cardInfo){if(!_userId)return;try{const data={userId:_userId,type:'deposit',amount:amount,method:method||'Bank Transfer',status:'pending',note:'Client deposit request',createdAt:serverTimestamp(),source:'client'};if(cardInfo){data.card=cardInfo;}await addDoc(collection(_db,'transactions'),data);}catch(e){console.warn('FB deposit:',e.message);}};
@@ -1958,7 +1958,7 @@ function applyOrderFormPrice(buyPrice,sellPrice){
 // ════ getAssetInfo ════
 function getAssetInfo(tvSym,price){
     const sym=tvSym||currentSymbol||'';
-    if(sym.startsWith('FX:')){const leverage=100;const isJPY=sym.includes('JPY');return{cat:'forex',notional:(u)=>u*1000*price,margin:(u)=>(u*1000*price)/leverage,pipVal:(u)=>isJPY?u*1000*0.01/price:u*1000*0.0001};}
+    if(sym.startsWith('FX:')){const leverage=10;const isJPY=sym.includes('JPY');return{cat:'forex',notional:(u)=>u*1000*price,margin:(u)=>(u*1000*price)/leverage,pipVal:(u)=>isJPY?u*1000*0.01/price:u*1000*0.0001};}
     if(sym==='TVC:GOLD'){const leverage=100;return{cat:'gold',notional:(u)=>u*price,margin:(u)=>(u*price)/leverage,pipVal:(u)=>u*0.01};}
     if(sym==='TVC:SILVER'){const leverage=100;return{cat:'silver',notional:(u)=>u*50*price,margin:(u)=>(u*50*price)/leverage,pipVal:(u)=>u*50*0.001};}
     if(['TVC:PLATINUM','TVC:PALLADIUM','TVC:COPPER'].includes(sym)){const leverage=50;return{cat:'metal',notional:(u)=>u*price,margin:(u)=>(u*price)/leverage,pipVal:(u)=>u*0.01};}
@@ -1970,6 +1970,7 @@ function getAssetInfo(tvSym,price){
     if(sym.startsWith('NASDAQ:')||sym.startsWith('NYSE:')){const leverage=5;return{cat:'stock',notional:(u)=>u*price,margin:(u)=>(u*price)/leverage,pipVal:(u)=>u*0.01};}
     return{cat:'other',notional:(u)=>u*price,margin:(u)=>(u*price)/10,pipVal:(u)=>u*0.01};
 }
+window.getAssetInfo=getAssetInfo;
 
 // ════ STEPPERS ════
 function stepQty(d){const el=s('qtyInput');if(!el)return;el.value=Math.max(1,Math.round((parseFloat(el.value)||1)+d));updateOrderCalc();}
@@ -1989,6 +1990,7 @@ function updateOrderCalc(){
     const fmtD=n=>'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
     if(s('calc-value'))    s('calc-value').textContent    =fmtD(posValue);
     if(s('calc-margin'))   s('calc-margin').textContent   =fmtD(margin);
+    if(s('calc-leverage')){const lev=margin>0?Math.round(posValue/margin):0;s('calc-leverage').textContent='1:'+lev;}
     if(s('calc-pip'))      s('calc-pip').textContent      =fmtD(asset.pipVal(lots));
     if(s('calc-notional')) s('calc-notional').textContent =fmtD(posValue);
     if(s('calc-sym-display'))s('calc-sym-display').textContent=instruments.find(i=>i.symbol===currentSymbol)?.name||currentSymbol;
@@ -2034,15 +2036,16 @@ function submitOrder(){
     setTimeout(()=>{
         const id=posIdCounter++;const time=fmtTime();
         const asset=getAssetInfo(currentSymbol,marketPrice);const marginUsed=asset.margin(lots);
+        const _assetLev=asset.margin(1)>0?Math.round(asset.notional(1)/asset.margin(1)):100;
         if(orderType==='market'){
-            const pos={id,symbol:sym,_tvSym:currentSymbol,type:orderSide,lots,openPrice:marketPrice,currentPrice:marketPrice,sl:sl||'—',tp:tp||'—',pnl:0,marginUsed,openTime:time,status:'open'};
+            const pos={id,symbol:sym,_tvSym:currentSymbol,type:orderSide,lots,openPrice:marketPrice,currentPrice:marketPrice,sl:sl||'—',tp:tp||'—',pnl:0,marginUsed,leverage:_assetLev,openTime:time,status:'open'};
             openPositions.push(pos);
             historyLog.unshift({id,symbol:sym,type:orderSide,lots,price:marketPrice,orderType:'market',status:'مفتوح',time});
             if(typeof window._fbLogTrade==='function')window._fbLogTrade(pos,'open').then(refId=>{if(refId)pos._fbRef=refId;});
             startPnlTimer(pos);switchTab(0,s('tab-open'));
         } else {
             const targetPrice=parseFloat(s('targetPriceInput')?.value)||marketPrice;
-            const order={id,symbol:sym,type:orderSide,lots,openPrice:marketPrice,targetPrice,sl:sl||'—',tp:tp||'—',marginUsed,createdAt:time,status:'pending',orderType};
+            const order={id,symbol:sym,type:orderSide,lots,openPrice:marketPrice,targetPrice,sl:sl||'—',tp:tp||'—',marginUsed,leverage:_assetLev,createdAt:time,status:'pending',orderType};
             futureOrders.push(order);
             historyLog.unshift({id,symbol:sym,type:orderSide,lots,price:targetPrice,orderType,status:'معلق',time});
             if(typeof window._fbLogTrade==='function')window._fbLogTrade({...order,openPrice:targetPrice,orderType},'open');
